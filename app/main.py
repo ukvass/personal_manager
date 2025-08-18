@@ -1,5 +1,9 @@
+# PURPOSE: create tables on startup (if not exist).
+
 from fastapi import FastAPI
 from .routers import tasks
+from .db import Base, engine
+from . import db_models
 
 app = FastAPI(title="Personal Manager — Week 1–2")
 
@@ -8,3 +12,6 @@ async def health():
     return {"status": "ok"}
 
 app.include_router(tasks.router)
+
+# Create tables if they do not exist yet (simple dev-time init)
+Base.metadata.create_all(bind=engine)
