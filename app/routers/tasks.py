@@ -1,7 +1,7 @@
 # PURPOSE: use DB-backed functions with FastAPI dependency injection for Session.
 
 from fastapi import APIRouter, HTTPException, Response, status, Query, Depends
-from typing import Optional, List
+from typing import Optional, List, Literal
 from sqlalchemy.orm import Session
 from ..models import Task, TaskCreate, TaskUpdate, TaskPut, Status
 from ..store_db import (
@@ -15,6 +15,9 @@ from ..store_db import (
     count_tasks as db_count_tasks,
 )
 
+OrderBy = Literal["created_at", "priority", "deadline"]
+OrderDir = Literal["asc", "desc"]
+
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
@@ -24,12 +27,17 @@ async def list_tasks(
     priority: Optional[int] = None,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    order_by: OrderBy = Query("created_at"),
+    order_dir: OrderDir = Query("desc"),
     db: Session = Depends(get_db),
-    response: Response = None,  # add Response
+    response: Response = Response,
 ):
-    tasks = db_list_tasks(db, status=status, priority=priority, limit=limit, offset=offset)
+    tasks = db_list_tasks(
+        db, status=status, priority=priority,
+        limit=limit, offset=offset,
+        order_by=order_by, order_dir=order_dir,
+    )
     total = db_count_tasks(db, status=status, priority=priority)
-    response.headers["X-Total-Count"] = str(total)
     return tasks
 
 

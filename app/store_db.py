@@ -1,12 +1,15 @@
 # PURPOSE: same API as in-memory store, but using the database.
 
-from typing import List, Optional
+from typing import List, Optional, Literal
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
+from sqlalchemy import asc, desc   # for ordering
 from . import db_models, models
 from .db import SessionLocal
 from datetime import datetime, timezone
 
+OrderBy = Literal["created_at", "priority", "deadline"]
+OrderDir = Literal["asc", "desc"]
 
 def now_utc():
     return datetime.now(timezone.utc)
@@ -29,6 +32,7 @@ def to_schema(row: db_models.TaskDB) -> models.Task:
         description=row.description,
         status=row.status,
         priority=row.priority,
+        deadline=row.deadline,
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
@@ -43,6 +47,8 @@ def list_tasks(
     priority: Optional[int] = None,
     limit: int = 20,
     offset: int = 0,
+    order_by: OrderBy = "created_at",   # default sort
+    order_dir: OrderDir = "desc",       # default dir
 ) -> List[models.Task]:
     """Return tasks filtered and paginated from the DB."""
     stmt = select(db_models.TaskDB)
@@ -52,6 +58,16 @@ def list_tasks(
     # filter by priority
     if priority is not None:
         stmt = stmt.where(db_models.TaskDB.priority == priority)
+
+    # map order_by -> ORM column
+    col_map = {
+        "created_at": db_models.TaskDB.created_at,
+        "priority": db_models.TaskDB.priority,
+        "deadline": db_models.TaskDB.deadline,
+    }
+    col = col_map.get(order_by, db_models.TaskDB.created_at)
+    stmt = stmt.order_by(asc(col) if order_dir == "asc" else desc(col))
+
     # apply limit/offset
     stmt = stmt.offset(offset).limit(limit)
     rows = db.execute(stmt).scalars().all()
@@ -65,6 +81,7 @@ def create_task(db: Session, data: models.TaskCreate) -> models.Task:
         description=data.description,
         status="todo",
         priority=data.priority or 1,
+        deadline=data.deadline,
         created_at=now_utc(),
         updated_at=now_utc(),
     )
@@ -91,6 +108,7 @@ def replace_task(db: Session, task_id: int, data: models.TaskPut) -> Optional[mo
     row.description = data.description
     row.status = data.status
     row.priority = data.priority
+    row.deadline = data.deadline
     row.updated_at = now_utc()
     db.commit()
     db.refresh(row)
@@ -110,6 +128,8 @@ def update_task(db: Session, task_id: int, data: models.TaskUpdate) -> Optional[
         row.status = data.status
     if hasattr(data, "priority") and (data.priority is not None):
         row.priority = data.priority
+    if data.deadline is not None:
+        row.deadline = data.deadline
     row.updated_at = now_utc()
     db.commit()
     db.refresh(row)

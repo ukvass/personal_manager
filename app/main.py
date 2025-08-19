@@ -12,6 +12,3 @@ async def health():
     return {"status": "ok"}
 
 app.include_router(tasks.router)
-
-# Create tables if they do not exist yet (simple dev-time init)
-Base.metadata.create_all(bind=engine)

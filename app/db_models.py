@@ -1,6 +1,6 @@
 # PURPOSE: define how a Task row looks in the database.
 
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Index
 from .db import Base
 from datetime import datetime, timezone
 
@@ -18,5 +18,12 @@ class TaskDB(Base):
     description = Column(String, nullable=True)
     status = Column(String, default="todo")  # todo | in_progress | done
     priority = Column(Integer, default=1)     # 1..5
+    deadline = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=now_utc)
     updated_at = Column(DateTime, default=now_utc)
+    deadline = Column(DateTime, nullable=True)
+
+# Helpful indexes for filtering/sorting
+Index("ix_tasks_status", TaskDB.status)
+Index("ix_tasks_priority", TaskDB.priority)
+Index("ix_tasks_deadline", TaskDB.deadline)

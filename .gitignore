@@ -1,9 +1,9 @@
-# Виртуальное окружение
+# --- Virtual environments ---
 .venv/
 env/
 venv/
 
-# Python
+# --- Python cache & build ---
 __pycache__/
 *.py[cod]
 *.pyo
@@ -12,21 +12,25 @@ __pycache__/
 *.egg-info/
 *.egg
 
-# Логи и временные файлы
+# --- Logs & temp files ---
 *.log
 *.tmp
 *.swp
 
-# Тесты / Pytest
+# --- Test / coverage artifacts ---
 .cache/
 .pytest_cache/
 .coverage
 htmlcov/
 
-# IDE
+# --- IDE configs ---
 .vscode/
 .idea/
 
-# OS
+# --- OS junk ---
 .DS_Store
 Thumbs.db
+
+# --- Project-specific ---
+# SQLite DB (local, do not commit)
+tasks.db
