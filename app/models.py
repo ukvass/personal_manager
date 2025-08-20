@@ -1,11 +1,8 @@
 from typing import Optional, Literal
-from pydantic import BaseModel, Field
-from datetime import datetime, timezone
+from pydantic import BaseModel, Field, EmailStr
+from datetime import datetime
 
 Status = Literal["todo", "in_progress", "done"]
-
-def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
 
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=120)
@@ -35,3 +32,23 @@ class Task(BaseModel):
     priority: int
     created_at: datetime
     updated_at: datetime
+
+# ==== User schemas ====
+
+class UserBase(BaseModel):
+    # Simple public fields
+    email: EmailStr
+
+class UserCreate(UserBase):
+    # Raw password only in create request
+    password: str
+
+class UserPublic(UserBase):
+    id: int
+    class Config:
+        from_attributes = True  # allow ORM -> schema
+
+class TokenResponse(BaseModel):
+    # Simple JWT response
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"

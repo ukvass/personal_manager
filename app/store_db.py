@@ -43,6 +43,7 @@ def to_schema(row: db_models.TaskDB) -> models.Task:
 def list_tasks(
     db: Session,
     *,
+    owner_id: int,
     status: Optional[models.Status] = None,
     priority: Optional[int] = None,
     limit: int = 20,
@@ -74,8 +75,8 @@ def list_tasks(
     return [to_schema(r) for r in rows]
 
 
-def create_task(db: Session, data: models.TaskCreate) -> models.Task:
-    """Insert a new task row and return it as Pydantic model."""
+def create_task(db: Session, data: models.TaskCreate, owner_id: int) -> models.Task:
+    """Insert a new task for the owner and return it."""
     row = db_models.TaskDB(
         title=data.title,
         description=data.description,
@@ -84,6 +85,7 @@ def create_task(db: Session, data: models.TaskCreate) -> models.Task:
         deadline=data.deadline,
         created_at=now_utc(),
         updated_at=now_utc(),
+        owner_id=owner_id,
     )
     db.add(row)
     db.commit()
@@ -91,18 +93,18 @@ def create_task(db: Session, data: models.TaskCreate) -> models.Task:
     return to_schema(row)
 
 
-def get_task(db: Session, task_id: int) -> Optional[models.Task]:
-    """Return one task by id or None."""
+def get_task(db: Session, task_id: int, owner_id: int) -> Optional[models.Task]:
+    """Return one task by id for the owner or None."""
     row = db.get(db_models.TaskDB, task_id)
-    if not row:
+    if not row or row.owner_id != owner_id:
         return None
     return to_schema(row)
 
 
-def replace_task(db: Session, task_id: int, data: models.TaskPut) -> Optional[models.Task]:
+def replace_task(db: Session, task_id: int, data: models.TaskPut, owner_id: int) -> Optional[models.Task]:
     """Full replace: set ALL modifiable fields (PUT)."""
     row = db.get(db_models.TaskDB, task_id)
-    if not row:
+    if not row or row.owner_id != owner_id:
         return None
     row.title = data.title
     row.description = data.description
@@ -115,10 +117,10 @@ def replace_task(db: Session, task_id: int, data: models.TaskPut) -> Optional[mo
     return to_schema(row)
 
 
-def update_task(db: Session, task_id: int, data: models.TaskUpdate) -> Optional[models.Task]:
+def update_task(db: Session, task_id: int, data: models.TaskUpdate, owner_id: int) -> Optional[models.Task]:
     """Partial update (PATCH): change only provided fields."""
     row = db.get(db_models.TaskDB, task_id)
-    if not row:
+    if not row or row.owner_id != owner_id:
         return None
     if data.title is not None:
         row.title = data.title
@@ -136,10 +138,10 @@ def update_task(db: Session, task_id: int, data: models.TaskUpdate) -> Optional[
     return to_schema(row)
 
 
-def delete_task(db: Session, task_id: int) -> bool:
+def delete_task(db: Session, task_id: int, owner_id: int) -> bool:
     """Delete a task. Return True if deleted, False if not found."""
     row = db.get(db_models.TaskDB, task_id)
-    if not row:
+    if not row or row.owner_id != owner_id:
         return False
     db.delete(row)
     db.commit()

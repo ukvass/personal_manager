@@ -1,6 +1,7 @@
 # PURPOSE: define how a Task row looks in the database.
 
-from sqlalchemy import Column, Integer, String, DateTime, Index
+from sqlalchemy import Column, Integer, String, DateTime, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from .db import Base
 from datetime import datetime, timezone
 
@@ -21,7 +22,16 @@ class TaskDB(Base):
     deadline = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=now_utc)
     updated_at = Column(DateTime, default=now_utc)
-    deadline = Column(DateTime, nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # task owner
+
+class UserDB(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)  # unique login
+    password_hash = Column(String, nullable=False)  # store hash, not raw password
+    created_at = Column(DateTime, default=now_utc)
+    # relationship to tasks
+    tasks = relationship("TaskDB", backref="owner")
 
 # Helpful indexes for filtering/sorting
 Index("ix_tasks_status", TaskDB.status)

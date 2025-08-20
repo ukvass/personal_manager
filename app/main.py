@@ -1,14 +1,11 @@
-# PURPOSE: create tables on startup (if not exist).
+# PURPOSE: основной модуль приложения.
 
 from fastapi import FastAPI
 from .routers import tasks
-from .db import Base, engine
+from .routers import auth as auth_router
 from . import db_models
 
-app = FastAPI(title="Personal Manager — Week 1–2")
+app = FastAPI(title="Personal Manager")
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
+app.include_router(auth_router.router)
 app.include_router(tasks.router)
