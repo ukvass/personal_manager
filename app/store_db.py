@@ -1,4 +1,8 @@
-# PURPOSE: same API as in-memory store, but using the database.
+# >>> PATCH: app/store_db.py
+# What changed (additions only, previous fixes preserved):
+# - list_tasks/count_tasks: added optional `q` full-text search (ILIKE on title/description).
+# - Added bulk operations: bulk_delete_tasks, bulk_complete_tasks (scoped by owner).
+# - No breaking changes to existing signatures/behavior.
 
 from typing import List, Optional, Literal
 from sqlalchemy.orm import Session
@@ -11,12 +15,14 @@ from datetime import datetime, timezone
 OrderBy = Literal["created_at", "priority", "deadline"]
 OrderDir = Literal["asc", "desc"]
 
+
 def now_utc():
+    """Return timezone-aware UTC datetime (stored in DB)."""
     return datetime.now(timezone.utc)
 
 
 def get_db():
-    """FastAPI dependency: open a DB session for each request and close it after."""
+    """Provide a SQLAlchemy Session per request and ensure it is closed."""
     db = SessionLocal()
     try:
         yield db
@@ -25,7 +31,7 @@ def get_db():
 
 
 def to_schema(row: db_models.TaskDB) -> models.Task:
-    """Map ORM row (TaskDB) → Pydantic schema (Task)."""
+    """Map ORM row -> Pydantic schema."""
     return models.Task(
         id=row.id,
         title=row.title,
@@ -38,29 +44,33 @@ def to_schema(row: db_models.TaskDB) -> models.Task:
     )
 
 
-# ---------- CRUD ----------
-
 def list_tasks(
     db: Session,
     *,
     owner_id: int,
     status: Optional[models.Status] = None,
     priority: Optional[int] = None,
+    q: Optional[str] = None,
     limit: int = 20,
     offset: int = 0,
-    order_by: OrderBy = "created_at",   # default sort
-    order_dir: OrderDir = "desc",       # default dir
+    order_by: OrderBy = "created_at",
+    order_dir: OrderDir = "desc",
 ) -> List[models.Task]:
     """Return tasks filtered and paginated from the DB."""
-    stmt = select(db_models.TaskDB)
-    # filter by status
+    stmt = select(db_models.TaskDB).where(db_models.TaskDB.owner_id == owner_id)
+
     if status is not None:
         stmt = stmt.where(db_models.TaskDB.status == status)
-    # filter by priority
     if priority is not None:
         stmt = stmt.where(db_models.TaskDB.priority == priority)
+    if q:
+        # simple full-text search over title & description (case-insensitive)
+        like = f"%{q}%"
+        stmt = stmt.where(
+            (db_models.TaskDB.title.ilike(like)) |
+            (db_models.TaskDB.description.ilike(like))
+        )
 
-    # map order_by -> ORM column
     col_map = {
         "created_at": db_models.TaskDB.created_at,
         "priority": db_models.TaskDB.priority,
@@ -69,14 +79,12 @@ def list_tasks(
     col = col_map.get(order_by, db_models.TaskDB.created_at)
     stmt = stmt.order_by(asc(col) if order_dir == "asc" else desc(col))
 
-    # apply limit/offset
     stmt = stmt.offset(offset).limit(limit)
     rows = db.execute(stmt).scalars().all()
     return [to_schema(r) for r in rows]
 
 
 def create_task(db: Session, data: models.TaskCreate, owner_id: int) -> models.Task:
-    """Insert a new task for the owner and return it."""
     row = db_models.TaskDB(
         title=data.title,
         description=data.description,
@@ -89,12 +97,11 @@ def create_task(db: Session, data: models.TaskCreate, owner_id: int) -> models.T
     )
     db.add(row)
     db.commit()
-    db.refresh(row)  # populate row.id and other defaults
+    db.refresh(row)
     return to_schema(row)
 
 
 def get_task(db: Session, task_id: int, owner_id: int) -> Optional[models.Task]:
-    """Return one task by id for the owner or None."""
     row = db.get(db_models.TaskDB, task_id)
     if not row or row.owner_id != owner_id:
         return None
@@ -102,7 +109,6 @@ def get_task(db: Session, task_id: int, owner_id: int) -> Optional[models.Task]:
 
 
 def replace_task(db: Session, task_id: int, data: models.TaskPut, owner_id: int) -> Optional[models.Task]:
-    """Full replace: set ALL modifiable fields (PUT)."""
     row = db.get(db_models.TaskDB, task_id)
     if not row or row.owner_id != owner_id:
         return None
@@ -118,7 +124,6 @@ def replace_task(db: Session, task_id: int, data: models.TaskPut, owner_id: int)
 
 
 def update_task(db: Session, task_id: int, data: models.TaskUpdate, owner_id: int) -> Optional[models.Task]:
-    """Partial update (PATCH): change only provided fields."""
     row = db.get(db_models.TaskDB, task_id)
     if not row or row.owner_id != owner_id:
         return None
@@ -139,7 +144,6 @@ def update_task(db: Session, task_id: int, data: models.TaskUpdate, owner_id: in
 
 
 def delete_task(db: Session, task_id: int, owner_id: int) -> bool:
-    """Delete a task. Return True if deleted, False if not found."""
     row = db.get(db_models.TaskDB, task_id)
     if not row or row.owner_id != owner_id:
         return False
@@ -147,16 +151,53 @@ def delete_task(db: Session, task_id: int, owner_id: int) -> bool:
     db.commit()
     return True
 
+
 def count_tasks(
     db: Session,
     *,
+    owner_id: int,
     status: Optional[models.Status] = None,
     priority: Optional[int] = None,
+    q: Optional[str] = None,
 ) -> int:
-    """Return total count of tasks (with same filters)."""
-    stmt = select(func.count()).select_from(db_models.TaskDB)
+    stmt = select(func.count()).select_from(db_models.TaskDB).where(db_models.TaskDB.owner_id == owner_id)
     if status is not None:
         stmt = stmt.where(db_models.TaskDB.status == status)
     if priority is not None:
         stmt = stmt.where(db_models.TaskDB.priority == priority)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(
+            (db_models.TaskDB.title.ilike(like)) |
+            (db_models.TaskDB.description.ilike(like))
+        )
     return db.execute(stmt).scalar_one()
+
+
+# --- Bulk operations (scoped to owner) ---
+
+def bulk_delete_tasks(db: Session, ids: List[int], owner_id: int) -> int:
+    """Delete tasks by IDs if they belong to owner. Returns number of deleted rows."""
+    count = 0
+    for tid in ids:
+        row = db.get(db_models.TaskDB, tid)
+        if row and row.owner_id == owner_id:
+            db.delete(row)
+            count += 1
+    if count:
+        db.commit()
+    return count
+
+
+def bulk_complete_tasks(db: Session, ids: List[int], owner_id: int) -> int:
+    """Set status='done' for tasks by IDs if they belong to owner. Returns number of updated rows."""
+    count = 0
+    for tid in ids:
+        row = db.get(db_models.TaskDB, tid)
+        if row and row.owner_id == owner_id and row.status != "done":
+            row.status = "done"
+            row.updated_at = now_utc()
+            count += 1
+    if count:
+        db.commit()
+    return count

@@ -1,9 +1,14 @@
+# >>> PATCH: requirements.txt
+# Changes:
+# - Removed passlib[bcrypt] (source of DeprecationWarning about 'crypt').
+# - Added bcrypt (direct hashing backend) — компактнее и без лишних ворнингов.
 fastapi
 uvicorn[standard]
 pydantic
 sqlalchemy
 pytest
 alembic
-passlib[bcrypt]
 python-jose[cryptography]
 email-validator
+pydantic-settings
+bcrypt

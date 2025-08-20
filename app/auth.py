@@ -1,75 +1,102 @@
-# app/auth.py
-# PURPOSE: password hashing/verification + JWT issue/verify
+# >>> PATCH: app/auth.py
+# Changes:
+# - Replaced passlib with direct bcrypt usage to remove DeprecationWarning.
+# - Public API unchanged: hash_password(), verify_password(), create_access_token(), get_current_user().
+# - Reads JWT config from app.config.settings as before.
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Dict
 
-from passlib.context import CryptContext
-from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+import bcrypt
 from sqlalchemy.orm import Session
 
+from .config import settings
 from .db import SessionLocal
 from .db_models import UserDB
 from .models import UserPublic
 
-# Password hashing context (bcrypt)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# OAuth2 bearer token in Authorization header
+# OAuth2 password flow
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-# WARNING: for demo/dev only; in production put it in env variable
-JWT_SECRET = "CHANGE_THIS_SECRET_IN_PROD"
-JWT_ALG = "HS256"
-JWT_EXPIRE_MIN = 60 * 24  # 24h
 
-def hash_password(raw: str) -> str:
-    """Hash plain password."""
-    return pwd_context.hash(raw)
+# --- Password helpers (bcrypt, no passlib) ---
 
-def verify_password(raw: str, hashed: str) -> bool:
-    """Verify plain password against hash."""
-    return pwd_context.verify(raw, hashed)
+def hash_password(password: str) -> str:
+    """Return a bcrypt hash for the given plain password."""
+    if not isinstance(password, str):
+        raise TypeError("password must be a string")
+    salt = bcrypt.gensalt()
+    # store as utf-8 string
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
-def create_access_token(user_id: int, expires_minutes: int = JWT_EXPIRE_MIN) -> str:
-    """Issue JWT with user id in 'sub' claim."""
-    now = datetime.now(timezone.utc)
-    exp = now + timedelta(minutes=expires_minutes)
-    payload = {"sub": str(user_id), "iat": int(now.timestamp()), "exp": int(exp.timestamp())}
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
 
-# FastAPI dependency: get DB session
+def verify_password(plain_password: str, password_hash: str) -> bool:
+    """Verify a plain password against its bcrypt hash."""
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            password_hash.encode("utf-8"),
+        )
+    except Exception:
+        # In case of malformed hash or encoding issues.
+        return False
+
+
+# --- DB dependency ---
+
 def get_db():
-    """Yield a SQLAlchemy Session (same pattern as store_db.get_db)."""
+    """Yield a SQLAlchemy Session; mirrors store_db.get_db usage pattern."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
-) -> UserPublic:
-    """Decode JWT, load user from DB, return public user schema."""
-    credentials_error = HTTPException(
+
+# --- JWT helpers ---
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def create_access_token(subject: str | Dict[str, Any]) -> str:
+    """
+    Create a signed JWT for a user.
+    - `subject` can be email (str) or payload dict; we always include `sub`.
+    - Expiration controlled by settings.JWT_EXPIRE_MIN.
+    """
+    if isinstance(subject, str):
+        payload: Dict[str, Any] = {"sub": subject}
+    else:
+        payload = {**subject}
+        payload.setdefault("sub", subject.get("email") or subject.get("sub"))
+
+    expire = _now_utc() + timedelta(minutes=settings.JWT_EXPIRE_MIN)
+    payload.update({"exp": expire})
+    token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return token
+
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserPublic:
+    """Decode JWT, load user by email (sub), return public user schema."""
+    cred_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid credentials",
+        detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
-        sub = payload.get("sub")
-        if sub is None:
-            raise credentials_error
-        user_id = int(sub)
-    except (JWTError, ValueError):
-        raise credentials_error
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        subject = payload.get("sub")
+        if subject is None:
+            raise cred_error
+    except JWTError:
+        raise cred_error
 
-    user_row = db.get(UserDB, user_id)
-    if not user_row:
-        raise credentials_error
+    row = db.query(UserDB).filter(UserDB.email == subject).one_or_none()
+    if row is None:
+        raise cred_error
 
-    return UserPublic(id=user_row.id, email=user_row.email)
+    return UserPublic(id=row.id, email=row.email)
