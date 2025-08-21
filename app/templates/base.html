@@ -1,0 +1,33 @@
+<!-- >>> NEW FILE: templates/base.html
+     Purpose:
+     - Base Jinja layout with HTMX and minimal styling.
+     - Provides blocks: title, content. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}Personal Manager{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <h1>Personal Manager</h1>
+      <nav>
+        {% if user %}
+          <span class="muted">Signed in as {{ user.email }}</span>
+          <form method="post" action="/logout" style="display:inline;">
+            <button class="btn btn-secondary" type="submit">Logout</button>
+          </form>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

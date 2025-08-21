@@ -1,14 +1,13 @@
 # >>> PATCH: app/main.py
 # Changes:
-# - Replaced deprecated @app.on_event("startup") with lifespan context.
-# - Still creates DB tables on startup.
-# - Under pytest: creates a test user (if missing) and overrides get_current_user.
-# - Exposes simple /health endpoint.
-# - Mounts existing auth and tasks routers.
+# - Call run_startup_migrations(engine) after metadata.create_all().
+# - Everything else kept as-is.
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
+from importlib import resources as ilres
 
 from sqlalchemy.orm import Session
 
@@ -16,18 +15,20 @@ from .db import Base, engine, SessionLocal
 from . import db_models
 from .routers import tasks
 from .routers import auth as auth_router
+from .routers import web as web_router
 from .auth import get_current_user, hash_password
 from .models import UserPublic
+from .migrations import run_startup_migrations  # NEW
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """App startup/shutdown lifecycle."""
     # --- Startup ---
-    # Ensure database schema exists
     Base.metadata.create_all(bind=engine)
+    # Run minimal, idempotent migrations (e.g., add tasks.owner_id if missing)
+    run_startup_migrations(engine)
 
-    # In test mode (pytest), create a fixed user and bypass JWT via DI override
     test_db: Session | None = None
     if "PYTEST_CURRENT_TEST" in os.environ:
         test_db = SessionLocal()
@@ -44,23 +45,18 @@ async def lifespan(app: FastAPI):
             test_db.refresh(user)
 
         def _test_current_user_override():
-            # Minimal public user payload for tests
             return UserPublic(id=user.id, email=user.email)
 
-        # Register override so tests can call endpoints without Authorization header
         app.dependency_overrides[get_current_user] = _test_current_user_override
-        # Keep ref for cleanup
         app.state._had_test_override = True
     else:
         app.state._had_test_override = False
 
-    # Hand control over to the application runtime
     try:
         yield
     finally:
         # --- Shutdown ---
         if getattr(app.state, "_had_test_override", False):
-            # Remove override to avoid leaks across app instances
             app.dependency_overrides.pop(get_current_user, None)
         if test_db is not None:
             test_db.close()
@@ -71,10 +67,15 @@ app = FastAPI(title="Personal Manager", lifespan=lifespan)
 
 @app.get("/health")
 def health():
-    """Simple healthcheck endpoint used by tests/monitoring."""
+    """Simple healthcheck endpoint."""
     return {"status": "ok"}
 
+
+# Serve static from the *package* directory app/static, robust to CWD
+static_dir = ilres.files("app").joinpath("static")
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Mount routers
 app.include_router(auth_router.router)
 app.include_router(tasks.router)
+app.include_router(web_router.router)

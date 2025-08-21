@@ -1,0 +1,63 @@
+/* >>> NEW FILE: static/style.css
+   Purpose: minimal, clean styles. */
+
+:root {
+  --bg: #0b0e14;
+  --card: #121826;
+  --text: #e6edf3;
+  --muted: #9aa4b2;
+  --primary: #4f46e5;
+  --secondary: #334155;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --border: #263041;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container { max-width: 980px; margin: 0 auto; padding: 16px; }
+
+.header { background: #0f1420; border-bottom: 1px solid var(--border); }
+.header h1 { margin: 0; }
+.header nav { float: right; margin-top: -28px; }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.grid label { display: flex; flex-direction: column; gap: 6px; }
+.grid .actions { align-self: end; }
+
+input, select, button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0c1220;
+  color: var(--text);
+}
+
+.btn { background: var(--secondary); cursor: pointer; }
+.btn-primary { background: var(--primary); border-color: #3b34c5; }
+.btn-secondary { background: var(--secondary); }
+.btn-danger { background: var(--danger); border-color: #b91c1c; }
+.btn-success { background: var(--success); border-color: #15803d; }
+
+.table { width: 100%; }
+.row { display: grid; grid-template-columns: 50px 80px 1fr 160px 100px 160px; padding: 8px 6px; border-bottom: 1px solid var(--border); align-items: center; }
+.row.header { font-weight: 600; color: #c7d2fe; background: #0f1524; border-radius: 8px; }
+.row-actions { display: flex; gap: 8px; }
+
+.alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+.alert-error { background: #3f1f1f; border: 1px solid #7f1d1d; }
+
+.muted { color: var(--muted); }
+.mt { margin-top: 10px; }

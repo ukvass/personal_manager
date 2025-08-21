@@ -1,7 +1,6 @@
 # >>> PATCH: requirements.txt
-# Changes:
-# - Removed passlib[bcrypt] (source of DeprecationWarning about 'crypt').
-# - Added bcrypt (direct hashing backend) — компактнее и без лишних ворнингов.
+# What changed:
+# - Added jinja2 (templates) and python-multipart (HTML forms support).
 fastapi
 uvicorn[standard]
 pydantic
@@ -12,3 +11,5 @@ python-jose[cryptography]
 email-validator
 pydantic-settings
 bcrypt
+jinja2
+python-multipart

@@ -1,8 +1,8 @@
 # >>> PATCH: app/auth.py
 # Changes:
-# - Replaced passlib with direct bcrypt usage to remove DeprecationWarning.
-# - Public API unchanged: hash_password(), verify_password(), create_access_token(), get_current_user().
-# - Reads JWT config from app.config.settings as before.
+# - Added safe TTL parsing via get_access_token_ttl_minutes().
+# - create_access_token() now uses the safe TTL (fallback to 60 on bad env).
+# - Public API unchanged; rest of logic as before.
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
@@ -29,7 +29,6 @@ def hash_password(password: str) -> str:
     if not isinstance(password, str):
         raise TypeError("password must be a string")
     salt = bcrypt.gensalt()
-    # store as utf-8 string
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
@@ -41,7 +40,6 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
             password_hash.encode("utf-8"),
         )
     except Exception:
-        # In case of malformed hash or encoding issues.
         return False
 
 
@@ -62,11 +60,22 @@ def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def get_access_token_ttl_minutes() -> int:
+    """
+    Return access token TTL in minutes, parsed safely from settings.
+    Falls back to 60 if env contains invalid value (e.g., '60m').
+    """
+    try:
+        return int(settings.JWT_EXPIRE_MIN)
+    except Exception:
+        return 60
+
+
 def create_access_token(subject: str | Dict[str, Any]) -> str:
     """
     Create a signed JWT for a user.
     - `subject` can be email (str) or payload dict; we always include `sub`.
-    - Expiration controlled by settings.JWT_EXPIRE_MIN.
+    - Expiration controlled by settings.JWT_EXPIRE_MIN (safely parsed).
     """
     if isinstance(subject, str):
         payload: Dict[str, Any] = {"sub": subject}
@@ -74,7 +83,8 @@ def create_access_token(subject: str | Dict[str, Any]) -> str:
         payload = {**subject}
         payload.setdefault("sub", subject.get("email") or subject.get("sub"))
 
-    expire = _now_utc() + timedelta(minutes=settings.JWT_EXPIRE_MIN)
+    minutes = get_access_token_ttl_minutes()
+    expire = _now_utc() + timedelta(minutes=minutes)
     payload.update({"exp": expire})
     token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     return token

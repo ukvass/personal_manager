@@ -1,0 +1,103 @@
+<!-- >>> NEW FILE: templates/index.html
+     Purpose:
+     - Main tasks page with filters, create form, list, and bulk actions. -->
+{% extends "base.html" %}
+{% block title %}Tasks · Personal Manager{% endblock %}
+{% block content %}
+  <section class="card">
+    <h2>Create task</h2>
+    <form method="post" action="/ui/tasks" class="grid">
+      <label>Title
+        <input name="title" required maxlength="120">
+      </label>
+      <label>Priority
+        <input name="priority" type="number" min="1" max="5" value="1">
+      </label>
+      <label>Description
+        <input name="description" maxlength="1000">
+      </label>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Add</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Filter</h2>
+    <form method="get" action="/" class="grid">
+      <label>Search
+        <input name="q" value="{{ q }}">
+      </label>
+      <label>Status
+        <select name="status">
+          <option value="" {{ '' == (status or '') and 'selected' or '' }}>Any</option>
+          <option value="todo" {{ 'todo' == (status or '') and 'selected' or '' }}>Todo</option>
+          <option value="in_progress" {{ 'in_progress' == (status or '') and 'selected' or '' }}>In progress</option>
+          <option value="done" {{ 'done' == (status or '') and 'selected' or '' }}>Done</option>
+        </select>
+      </label>
+      <label>Priority
+        <input name="priority" type="number" min="1" max="5" value="{{ priority or '' }}">
+      </label>
+      <label>Order by
+        <select name="order_by">
+          <option value="created_at" {{ order_by == 'created_at' and 'selected' or '' }}>Created</option>
+          <option value="priority" {{ order_by == 'priority' and 'selected' or '' }}>Priority</option>
+          <option value="deadline" {{ order_by == 'deadline' and 'selected' or '' }}>Deadline</option>
+        </select>
+      </label>
+      <label>Order dir
+        <select name="order_dir">
+          <option value="desc" {{ order_dir == 'desc' and 'selected' or '' }}>Desc</option>
+          <option value="asc" {{ order_dir == 'asc' and 'selected' or '' }}>Asc</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" type="submit">Apply</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Tasks ({{ total }})</h2>
+    <form method="post" action="/ui/bulk_delete">
+      <div class="table">
+        <div class="row header">
+          <div><input type="checkbox" onclick="document.querySelectorAll('.chk').forEach(cb=>cb.checked=this.checked)"></div>
+          <div>ID</div>
+          <div>Title</div>
+          <div>Status</div>
+          <div>Priority</div>
+          <div>Actions</div>
+        </div>
+        {% for t in tasks %}
+          <div class="row">
+            <div><input class="chk" type="checkbox" name="ids" value="{{ t.id }}"></div>
+            <div>{{ t.id }}</div>
+            <div title="{{ t.description or '' }}">{{ t.title }}</div>
+            <div>{{ t.status }}</div>
+            <div>{{ t.priority }}</div>
+            <div class="row-actions">
+              <form method="post" action="/ui/tasks/{{ t.id }}/delete" style="display:inline;">
+                <button class="btn btn-secondary" type="submit">Delete</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <p class="muted">No tasks match your filters.</p>
+        {% endfor %}
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-danger" type="submit">Bulk delete</button>
+      </div>
+    </form>
+
+    <form method="post" action="/ui/bulk_complete" class="mt">
+      {% for t in tasks %}
+        <input type="hidden" name="ids" value="{{ t.id }}">
+      {% endfor %}
+      <button class="btn btn-success" type="submit">Mark all on page as done</button>
+    </form>
+  </section>
+{% endblock %}

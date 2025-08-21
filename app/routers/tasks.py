@@ -1,10 +1,8 @@
 # >>> PATCH: app/routers/tasks.py
-# What changed:
-# - Added optional `q` query for simple full-text search.
-# - Added two bulk endpoints:
-#     POST /tasks/bulk_delete  { "ids": [...] } -> { "deleted": N }
-#     POST /tasks/bulk_complete { "ids": [...] } -> { "updated": N }
-# - Kept user isolation and X-Total-Count behavior.
+# Fixes:
+# - Added custom parser for "priority" that treats empty string as None (no filter).
+# - Endpoint now depends on parse_priority() instead of direct Optional[int] parsing.
+# - Preserved X-Total-Count header and all existing behavior (filters, search, bulk).
 
 from typing import Optional, List, Literal, Dict
 from fastapi import APIRouter, HTTPException, Response, status, Query, Depends
@@ -31,11 +29,38 @@ OrderDir = Literal["asc", "desc"]
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
+# --- Helpers ---------------------------------------------------------------
+
+def parse_priority(priority: Optional[str] = Query(None)) -> Optional[int]:
+    """
+    Parse 'priority' query parameter.
+    - "" or missing -> None (no filter)
+    - integer string -> int
+    - anything else -> 422 (invalid)
+    """
+    if priority is None or priority == "":
+        return None
+    try:
+        return int(priority)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=422,
+            detail=[{
+                "type": "int_parsing",
+                "loc": ["query", "priority"],
+                "msg": "Input should be a valid integer, unable to parse string as an integer",
+                "input": priority,
+            }],
+        )
+
+
+# --- Routes ----------------------------------------------------------------
+
 @router.get("/", response_model=List[Task])
 async def list_tasks(
     status: Optional[Status] = None,
-    priority: Optional[int] = None,
-    q: Optional[str] = Query(default=None, description="Search in title/description"),
+    priority: Optional[int] = Depends(parse_priority),  # ← custom parser
+    q: Optional[str] = None,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     order_by: OrderBy = Query("created_at"),
