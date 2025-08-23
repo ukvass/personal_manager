@@ -1,6 +1,11 @@
-<!-- >>> NEW FILE: templates/index.html
-     Purpose:
-     - Main tasks page with filters, create form, list, and bulk actions. -->
+<!-- >>> PATCH: app/templates/index.html
+# Что изменилось:
+# - УБРАНА обёртка <form action="/ui/bulk_delete"> вокруг таблицы (исключаем вложенные формы).
+# - Добавлена отдельная пустая форма <form id="bulk-form" action="/ui/bulk_delete">.
+# - Чекбоксы строк теперь с атрибутом form="bulk-form", name="ids".
+# - Кнопка "Bulk delete" привязана к этой форме атрибутом form="bulk-form".
+# - Email пользователя выводится в шапке через base.html (контекст user_email уже передаётся из web.py).
+-->
 {% extends "base.html" %}
 {% block title %}Tasks · Personal Manager{% endblock %}
 {% block content %}
@@ -30,26 +35,27 @@
       </label>
       <label>Status
         <select name="status">
-          <option value="" {{ '' == (status or '') and 'selected' or '' }}>Any</option>
-          <option value="todo" {{ 'todo' == (status or '') and 'selected' or '' }}>Todo</option>
-          <option value="in_progress" {{ 'in_progress' == (status or '') and 'selected' or '' }}>In progress</option>
-          <option value="done" {{ 'done' == (status or '') and 'selected' or '' }}>Done</option>
+          <option value="" {{ (status or '') == '' and 'selected' or '' }}>Any</option>
+          <option value="todo" {{ (status or '') == 'todo' and 'selected' or '' }}>Todo</option>
+          <option value="in_progress" {{ (status or '') == 'in_progress' and 'selected' or '' }}>In progress</option>
+          <option value="done" {{ (status or '') == 'done' and 'selected' or '' }}>Done</option>
         </select>
       </label>
       <label>Priority
-        <input name="priority" type="number" min="1" max="5" value="{{ priority or '' }}">
+        <input name="priority" type="number" min="1" max="5" value="{{ priority if priority is not none else '' }}">
       </label>
       <label>Order by
         <select name="order_by">
           <option value="created_at" {{ order_by == 'created_at' and 'selected' or '' }}>Created</option>
-          <option value="priority" {{ order_by == 'priority' and 'selected' or '' }}>Priority</option>
-          <option value="deadline" {{ order_by == 'deadline' and 'selected' or '' }}>Deadline</option>
+          <option value="priority"   {{ order_by == 'priority'   and 'selected' or '' }}>Priority</option>
+          <option value="status"     {{ order_by == 'status'     and 'selected' or '' }}>Status</option>
+          <option value="deadline"   {{ order_by == 'deadline'   and 'selected' or '' }}>Deadline</option>
         </select>
       </label>
       <label>Order dir
         <select name="order_dir">
           <option value="desc" {{ order_dir == 'desc' and 'selected' or '' }}>Desc</option>
-          <option value="asc" {{ order_dir == 'asc' and 'selected' or '' }}>Asc</option>
+          <option value="asc"  {{ order_dir == 'asc'  and 'selected' or '' }}>Asc</option>
         </select>
       </label>
       <div class="actions">
@@ -60,38 +66,46 @@
 
   <section class="card">
     <h2>Tasks ({{ total }})</h2>
-    <form method="post" action="/ui/bulk_delete">
-      <div class="table">
-        <div class="row header">
-          <div><input type="checkbox" onclick="document.querySelectorAll('.chk').forEach(cb=>cb.checked=this.checked)"></div>
-          <div>ID</div>
-          <div>Title</div>
-          <div>Status</div>
-          <div>Priority</div>
-          <div>Actions</div>
-        </div>
-        {% for t in tasks %}
-          <div class="row">
-            <div><input class="chk" type="checkbox" name="ids" value="{{ t.id }}"></div>
-            <div>{{ t.id }}</div>
-            <div title="{{ t.description or '' }}">{{ t.title }}</div>
-            <div>{{ t.status }}</div>
-            <div>{{ t.priority }}</div>
-            <div class="row-actions">
-              <form method="post" action="/ui/tasks/{{ t.id }}/delete" style="display:inline;">
-                <button class="btn btn-secondary" type="submit">Delete</button>
-              </form>
-            </div>
-          </div>
-        {% else %}
-          <p class="muted">No tasks match your filters.</p>
-        {% endfor %}
+
+    <!-- table body WITHOUT outer form (to avoid nested forms) -->
+    <div class="table">
+      <div class="row header">
+        <div></div>
+        <div>ID</div>
+        <div>Title</div>
+        <div>Status</div>
+        <div>Priority</div>
+        <div>Actions</div>
       </div>
 
-      <div class="actions">
-        <button class="btn btn-danger" type="submit">Bulk delete</button>
-      </div>
-    </form>
+      {% for t in tasks %}
+        <div class="row">
+          <div>
+            <input class="chk" type="checkbox" form="bulk-form" name="ids" value="{{ t.id }}">
+          </div>
+          <div>{{ t.id }}</div>
+
+          {% include "partials/title_cell.html" %}
+          {% include "partials/status_cell.html" %}
+          {% include "partials/priority_cell.html" %}
+
+          <div class="row-actions">
+            <form method="post" action="/ui/tasks/{{ t.id }}/delete" class="inline">
+              <button class="btn btn-danger" type="submit">Delete</button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <p class="muted">No tasks match your filters.</p>
+      {% endfor %}
+    </div>
+
+    <!-- separate forms for bulk actions -->
+    <form id="bulk-form" method="post" action="/ui/bulk_delete"></form>
+
+    <div class="actions">
+      <button class="btn btn-danger" form="bulk-form" type="submit">Bulk delete</button>
+    </div>
 
     <form method="post" action="/ui/bulk_complete" class="mt">
       {% for t in tasks %}

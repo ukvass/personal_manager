@@ -1,0 +1,18 @@
+<!-- >>> NEW FILE: app/templates/partials/priority_cell.html
+     (назначение)
+     - Ячейка приоритета. Селект 1..5; при изменении обновляет себя через HTMX.
+-->
+<div class="priority-cell" id="priority-cell-{{ t.id }}">
+  <form method="post" action="/ui/tasks/{{ t.id }}/priority" class="inline">
+    <select name="priority_new"
+            hx-post="/ui/tasks/{{ t.id }}/priority"
+            hx-include="closest form"
+            hx-trigger="change"
+            hx-target="#priority-cell-{{ t.id }}"
+            hx-swap="outerHTML">
+      {% for p in [1,2,3,4,5] %}
+        <option value="{{ p }}" {{ t.priority == p and 'selected' or '' }}>{{ p }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>

@@ -1,8 +1,7 @@
 # >>> PATCH: app/routers/tasks.py
-# Fixes:
-# - Added custom parser for "priority" that treats empty string as None (no filter).
-# - Endpoint now depends on parse_priority() instead of direct Optional[int] parsing.
-# - Preserved X-Total-Count header and all existing behavior (filters, search, bulk).
+# Changes:
+# - Allowed 'status' in OrderBy; parsers read order_by/order_dir by name.
+# - priority empty string -> None (no filter) unchanged.
 
 from typing import Optional, List, Literal, Dict
 from fastapi import APIRouter, HTTPException, Response, status, Query, Depends
@@ -23,21 +22,13 @@ from ..store_db import (
 )
 from ..auth import get_current_user
 
-OrderBy = Literal["created_at", "priority", "deadline"]
+OrderBy = Literal["created_at", "priority", "status", "deadline"]
 OrderDir = Literal["asc", "desc"]
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-# --- Helpers ---------------------------------------------------------------
-
 def parse_priority(priority: Optional[str] = Query(None)) -> Optional[int]:
-    """
-    Parse 'priority' query parameter.
-    - "" or missing -> None (no filter)
-    - integer string -> int
-    - anything else -> 422 (invalid)
-    """
     if priority is None or priority == "":
         return None
     try:
@@ -54,22 +45,45 @@ def parse_priority(priority: Optional[str] = Query(None)) -> Optional[int]:
         )
 
 
-# --- Routes ----------------------------------------------------------------
+def parse_order_by(order_by: Optional[str] = Query(None)) -> OrderBy:
+    if not order_by:
+        return "created_at"
+    if order_by in ("created_at", "priority", "status", "deadline"):
+        return order_by  # type: ignore[return-value]
+    raise HTTPException(status_code=422, detail=[{
+        "type": "literal_error",
+        "loc": ["query", "order_by"],
+        "msg": "order_by must be one of: created_at, priority, status, deadline",
+        "input": order_by,
+    }])
+
+
+def parse_order_dir(order_dir: Optional[str] = Query(None), order_by: OrderBy = Depends(parse_order_by)) -> OrderDir:
+    if not order_dir:
+        return "desc"
+    if order_dir in ("asc", "desc"):
+        return order_dir  # type: ignore[return-value]
+    raise HTTPException(status_code=422, detail=[{
+        "type": "literal_error",
+        "loc": ["query", "order_dir"],
+        "msg": "order_dir must be 'asc' or 'desc'",
+        "input": order_dir,
+    }])
+
 
 @router.get("/", response_model=List[Task])
 async def list_tasks(
     status: Optional[Status] = None,
-    priority: Optional[int] = Depends(parse_priority),  # ← custom parser
+    priority: Optional[int] = Depends(parse_priority),
     q: Optional[str] = None,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    order_by: OrderBy = Query("created_at"),
-    order_dir: OrderDir = Query("desc"),
+    order_by: OrderBy = Depends(parse_order_by),
+    order_dir: OrderDir = Depends(parse_order_dir),
     db: Session = Depends(get_db),
     user: UserPublic = Depends(get_current_user),
     response: Response = None,
 ):
-    """Return paginated tasks for the current user; sets X-Total-Count header."""
     total = db_count_tasks(db, owner_id=user.id, status=status, priority=priority, q=q)
     items = db_list_tasks(
         db, owner_id=user.id,
@@ -89,7 +103,6 @@ async def create_task(
     db: Session = Depends(get_db),
     user: UserPublic = Depends(get_current_user),
 ):
-    """Create a task owned by the current user and set Location header."""
     task = db_create_task(db, item, owner_id=user.id)
     response.headers["Location"] = f"/tasks/{task.id}"
     return task
@@ -101,7 +114,6 @@ async def get_task(
     db: Session = Depends(get_db),
     user: UserPublic = Depends(get_current_user),
 ):
-    """Get one task owned by the current user."""
     task = db_get_task(db, task_id, owner_id=user.id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -115,7 +127,6 @@ async def put_task(
     db: Session = Depends(get_db),
     user: UserPublic = Depends(get_current_user),
 ):
-    """Full replace the task owned by the current user."""
     updated = db_replace_task(db, task_id, item, owner_id=user.id)
     if not updated:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -129,7 +140,6 @@ async def patch_task(
     db: Session = Depends(get_db),
     user: UserPublic = Depends(get_current_user),
 ):
-    """Partial update the task owned by the current user."""
     updated = db_update_task(db, task_id, item, owner_id=user.id)
     if not updated:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -142,24 +152,19 @@ async def delete_task(
     db: Session = Depends(get_db),
     user: UserPublic = Depends(get_current_user),
 ):
-    """Delete the task owned by the current user."""
     ok = db_delete_task(db, task_id, owner_id=user.id)
     if not ok:
         raise HTTPException(status_code=404, detail="Task not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-# --- Bulk operations ---
-
 @router.post("/bulk_delete", status_code=status.HTTP_200_OK)
 async def bulk_delete(payload: TaskIdList, db: Session = Depends(get_db), user: UserPublic = Depends(get_current_user)) -> Dict[str, int]:
-    """Delete multiple tasks by IDs (only tasks owned by the current user are affected)."""
     deleted = db_bulk_delete(db, payload.ids, owner_id=user.id)
     return {"deleted": deleted}
 
 
 @router.post("/bulk_complete", status_code=status.HTTP_200_OK)
 async def bulk_complete(payload: TaskIdList, db: Session = Depends(get_db), user: UserPublic = Depends(get_current_user)) -> Dict[str, int]:
-    """Mark multiple tasks as done (only tasks owned by the current user are affected)."""
     updated = db_bulk_complete(db, payload.ids, owner_id=user.id)
     return {"updated": updated}

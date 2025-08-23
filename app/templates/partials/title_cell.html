@@ -1,0 +1,24 @@
+<!-- >>> PATCH: app/templates/partials/title_cell.html
+     Что изменено:
+     - Никаких глобальных CSS-правил.
+     - Контейнер .title-cell, сама <form> и <input> получают width:100% локально,
+       чтобы инпут растягивался ровно на ширину колонки и был одинаковым во всех строках.
+     - display:block на форме убирает «схлопывание» ширины из-за inline-контекста.
+-->
+<div class="title-cell" id="title-cell-{{ t.id }}" style="width:100%;">
+  <form method="post"
+        action="/ui/tasks/{{ t.id }}/title"
+        class="inline"
+        style="width:100%; display:block;"
+        hx-post="/ui/tasks/{{ t.id }}/title"
+        hx-trigger="change from:#title-input-{{ t.id }}, keyup[key=='Enter'] from:#title-input-{{ t.id }}"
+        hx-target="#title-cell-{{ t.id }}"
+        hx-swap="outerHTML">
+    <input id="title-input-{{ t.id }}"
+           name="title_new"
+           value="{{ t.title }}"
+           maxlength="120"
+           placeholder="Task title"
+           style="width:100%; box-sizing:border-box;">
+  </form>
+</div>

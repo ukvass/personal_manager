@@ -61,3 +61,23 @@ input, select, button {
 
 .muted { color: var(--muted); }
 .mt { margin-top: 10px; }
+
+/* badges */
+.badge { padding: 0.1rem 0.4rem; border-radius: 0.5rem; font-size: 0.85em; }
+.badge-gray { background: #e5e7eb; color: #374151; }
+.badge-blue { background: #dbeafe; color: #1e3a8a; }
+.badge-green { background: #dcfce7; color: #166534; }
+.status-cell select { margin-left: .5rem; }
+
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.status-cell .status-emoji {
+  font-size: 1.2rem;
+}
+
+.status-cell, .priority-cell, .title-cell { display: flex; align-items: center; gap: .4rem; }
+.status-emoji { font-size: 1.1rem; line-height: 1; }
+.title-cell input { width: 100%; max-width: 20rem; }

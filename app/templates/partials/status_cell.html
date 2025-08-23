@@ -1,0 +1,21 @@
+<!-- >>> PATCH: app/templates/partials/status_cell.html
+     (что изменено)
+     - Оставили только эмодзи и select; HTMX меняет ячейку целиком (outerHTML).
+-->
+<div class="status-cell" id="status-cell-{{ t.id }}">
+  <form method="post" action="/ui/tasks/{{ t.id }}/status" class="inline">
+    <span class="status-emoji">
+      {% if t.status == 'todo' %}✍️{% elif t.status == 'in_progress' %}⏳{% elif t.status == 'done' %}✅{% endif %}
+    </span>
+    <select name="status_new"
+            hx-post="/ui/tasks/{{ t.id }}/status"
+            hx-include="closest form"
+            hx-trigger="change"
+            hx-target="#status-cell-{{ t.id }}"
+            hx-swap="outerHTML">
+      <option value="todo"        {{ t.status == 'todo' and 'selected' or '' }}>todo</option>
+      <option value="in_progress" {{ t.status == 'in_progress' and 'selected' or '' }}>in_progress</option>
+      <option value="done"        {{ t.status == 'done' and 'selected' or '' }}>done</option>
+    </select>
+  </form>
+</div>
