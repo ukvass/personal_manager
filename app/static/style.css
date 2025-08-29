@@ -1,83 +1,105 @@
-/* >>> NEW FILE: static/style.css
-   Purpose: minimal, clean styles. */
+/* Light, pastel theme with comfortable spacing */
 
 :root {
-  --bg: #0b0e14;
-  --card: #121826;
-  --text: #e6edf3;
-  --muted: #9aa4b2;
-  --primary: #4f46e5;
-  --secondary: #334155;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --border: #263041;
+  /* Colors */
+  --bg: #f7f8fb;
+  --panel: #ffffff;
+  --panel-2: #f9fafb;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --line: #e6eaf0;
+  --brand: #8ab6ff;       /* pastel blue */
+  --brand-700: #6aa1ff;
+  --success: #8bd3a8;     /* pastel green */
+  --danger: #f8a5a5;      /* pastel red */
+  --warning: #f7d5a8;
+
+  /* Spaces & shape */
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 12px 32px rgba(31, 41, 55, 0.06);
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 18px;
+  --space-5: 22px;
 }
 
 * { box-sizing: border-box; }
-body {
+html, body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  padding: 0;
   background: var(--bg);
   color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
 }
 
-.container { max-width: 980px; margin: 0 auto; padding: 16px; }
-
-.header { background: #0f1420; border-bottom: 1px solid var(--border); }
-.header h1 { margin: 0; }
-.header nav { float: right; margin-top: -28px; }
-
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-
-.grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+/* Topbar */
+.topbar {
+  position: sticky;
+  top: 0; z-index: 10;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.88));
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: saturate(140%) blur(6px);
 }
-.grid label { display: flex; flex-direction: column; gap: 6px; }
-.grid .actions { align-self: end; }
-
-input, select, button {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #0c1220;
-  color: var(--text);
-}
-
-.btn { background: var(--secondary); cursor: pointer; }
-.btn-primary { background: var(--primary); border-color: #3b34c5; }
-.btn-secondary { background: var(--secondary); }
-.btn-danger { background: var(--danger); border-color: #b91c1c; }
-.btn-success { background: var(--success); border-color: #15803d; }
-
-.table { width: 100%; }
-.row { display: grid; grid-template-columns: 50px 80px 1fr 160px 100px 160px; padding: 8px 6px; border-bottom: 1px solid var(--border); align-items: center; }
-.row.header { font-weight: 600; color: #c7d2fe; background: #0f1524; border-radius: 8px; }
-.row-actions { display: flex; gap: 8px; }
-
-.alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
-.alert-error { background: #3f1f1f; border: 1px solid #7f1d1d; }
-
-.muted { color: var(--muted); }
-.mt { margin-top: 10px; }
-
-/* badges */
-.badge { padding: 0.1rem 0.4rem; border-radius: 0.5rem; font-size: 0.85em; }
-.badge-gray { background: #e5e7eb; color: #374151; }
-.badge-blue { background: #dbeafe; color: #1e3a8a; }
-.badge-green { background: #dcfce7; color: #166534; }
-.status-cell select { margin-left: .5rem; }
-
-.status-cell {
+.topbar-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: space-between;
 }
-.status-cell .status-emoji {
-  font-size: 1.2rem;
+.brand {
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: .2px;
+  color: #334155;
 }
+.top-actions { display: flex; align-items: center; gap: var(--space-3); color: var(--muted); }
+.pill { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 8px 12px; border-radius: 999px; cursor: pointer }
+.pill:hover { filter: brightness(1.02); }
 
-.status-cell, .priority-cell, .title-cell { display: flex; align-items: center; gap: .4rem; }
-.status-emoji { font-size: 1.1rem; line-height: 1; }
-.title-cell input { width: 100%; max-width: 20rem; }
+/* Layout */
+.container { max-width: 1100px; margin: 22px auto; padding: 0 var(--space-4); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); margin: var(--space-4) 0; box-shadow: var(--shadow); }
+.card-compact { padding: var(--space-3); }
+.card-compact h2 { margin-bottom: var(--space-2); }
+h1, h2 { margin: 0 0 var(--space-3); }
+.muted { color: var(--muted); }
+
+/* Forms */
+label { font-size: .95rem; color: var(--muted); }
+input, select, button { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px }
+
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+.grid label { display: flex; flex-direction: column; gap: 6px; }
+.grid .actions { display: flex; align-items: flex-end }
+
+/* Actions bar inside cards */
+.actions { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
+
+.btn { background: #e7eefc; border: 1px solid var(--brand-700); color: #1f2b4a; cursor: pointer; padding: 10px 12px; border-radius: var(--radius-sm) }
+.btn:hover { filter: brightness(1.01) }
+.btn-primary { background: var(--brand); border-color: var(--brand-700) }
+.btn-danger { background: var(--danger); border-color: #f28b8b }
+.btn-success { background: var(--success); border-color: #6ac493 }
+
+/* Table */
+.table { display: flex; flex-direction: column; gap: 4px }
+.row { display: grid; grid-template-columns: 32px 72px minmax(0, 1fr) 220px 100px 140px; align-items: center; gap: 8px; padding: 6px 0; }
+.row.header { color: var(--muted); font-weight: 600; border-bottom: 1px dashed var(--line); padding-bottom: 8px }
+.row > * { min-width: 0 }
+.row-actions { display: flex; gap: 10px; justify-content: flex-start }
+
+/* Cells */
+.status-cell, .priority-cell, .title-cell { display: flex; align-items: center; gap: .5rem }
+.status-emoji { font-size: 1.1rem; line-height: 1 }
+.status-cell select { margin-left: .4rem }
+.title-cell input { width: 100%; }
+
+/* Utils */
+.alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+.alert-error { background: #fde8e8; border: 1px solid #f8b4b4; color: #7b1c1c; }
+.mt { margin-top: 10px }

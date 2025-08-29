@@ -61,7 +61,7 @@
     </form>
   </section>
 
-  <section class="card">
+  <section class="card card-compact">
     <h2>Tasks ({{ total }})</h2>
 
     <!-- table body WITHOUT outer form (to avoid nested forms) -->
@@ -102,13 +102,12 @@
 
     <div class="actions">
       <button class="btn btn-danger" form="bulk-form" type="submit">Bulk delete</button>
+      <form method="post" action="/ui/bulk_complete">
+        {% for t in tasks %}
+          <input type="hidden" name="ids" value="{{ t.id }}">
+        {% endfor %}
+        <button class="btn btn-success" type="submit">Mark all on page as done</button>
+      </form>
     </div>
-
-    <form method="post" action="/ui/bulk_complete" class="mt">
-      {% for t in tasks %}
-        <input type="hidden" name="ids" value="{{ t.id }}">
-      {% endfor %}
-      <button class="btn btn-success" type="submit">Mark all on page as done</button>
-    </form>
   </section>
 {% endblock %}
