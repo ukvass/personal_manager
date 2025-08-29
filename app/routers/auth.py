@@ -41,7 +41,8 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     user = db.query(UserDB).filter(UserDB.email == form.username).first()
     if not user or not verify_password(form.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    token = create_access_token(user.id)
+    # subject should be the email, as get_current_user expects to look up by email
+    token = create_access_token(user.email)
     return TokenResponse(access_token=token)
 
 @router.get("/me", response_model=UserPublic)

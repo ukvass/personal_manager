@@ -26,6 +26,7 @@ from ..store_db import (
     get_task as db_get_task,
 )
 from ..auth import verify_password, create_access_token, get_access_token_ttl_minutes
+from ..models import TaskCreate, TaskUpdate
 
 templates_dir = ilres.files("app").joinpath("templates")
 templates = Jinja2Templates(directory=str(templates_dir))
@@ -185,7 +186,7 @@ def create_task_web(
     request: Request,
     title: str = Form(...),
     priority: int = Form(1),
-    description: Optional[str] = Form(None),
+    # description removed
     db: Session = Depends(get_db),
 ):
     user = _get_user_from_cookie(request, db)
@@ -196,11 +197,7 @@ def create_task_web(
     if not title:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
-    data = type("Data", (), {})()
-    data.title = title
-    data.priority = priority
-    data.description = description
-    data.deadline = None
+    data = TaskCreate(title=title, priority=priority, deadline=None)
     db_create_task(db, data=data, owner_id=user.id)
     return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
@@ -240,8 +237,7 @@ def change_status_web(request: Request, task_id: int, status_new: str = Form(...
     if status_new not in VALID_STATUS:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
-    data = type("Data", (), {})()
-    data.status = status_new
+    data = TaskUpdate(status=status_new)
     updated = db_update_task(db, task_id, data, owner_id=user.id)
     if not updated:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
@@ -264,8 +260,7 @@ def change_priority_web(request: Request, task_id: int, priority_new: int = Form
         p = 1
     p = max(1, min(5, p))
 
-    data = type("Data", (), {})()
-    data.priority = p
+    data = TaskUpdate(priority=p)
     updated = db_update_task(db, task_id, data, owner_id=user.id)
     if not updated:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
@@ -288,8 +283,7 @@ def change_title_web(request: Request, task_id: int, title_new: str = Form(...),
     if len(title_new) > 120:
         title_new = title_new[:120]
 
-    data = type("Data", (), {})()
-    data.title = title_new
+    data = TaskUpdate(title=title_new)
     updated = db_update_task(db, task_id, data, owner_id=user.id)
     if not updated:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)

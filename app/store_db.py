@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from typing import Optional, Sequence, List
 
-from sqlalchemy import func, or_, case
+from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
-from .db_models import TaskDB
+from .db_models import TaskDB, now_utc
 
 
 # --- Session dependency ----------------------------------------------------
@@ -45,7 +45,7 @@ def _apply_common_filters(
         query = query.filter(TaskDB.priority == priority)
     if q:
         like = f"%{q}%"
-        query = query.filter(or_(TaskDB.title.ilike(like), TaskDB.description.ilike(like)))
+        query = query.filter(TaskDB.title.ilike(like))
     return query
 
 
@@ -69,7 +69,8 @@ def _apply_ordering(query, *, order_by: str, order_dir: str):
     elif order_by == "created_at":
         primary = TaskDB.created_at
     elif order_by == "deadline":
-        primary = TaskDB.created_at  # fallback, no deadline column yet
+        # Put rows with a deadline first (by deadline), then fall back to created_at
+        primary = func.coalesce(TaskDB.deadline, TaskDB.created_at)
     else:
         primary = TaskDB.created_at
 
@@ -135,12 +136,15 @@ def count_tasks(
 
 def create_task(db: Session, data, *, owner_id: Optional[int] = None) -> TaskDB:
     """Create a task from a Pydantic-like object; owner_id is optional."""
+    now = now_utc()
     row = TaskDB(
         title=data.title,
-        description=getattr(data, "description", None),
         status=getattr(data, "status", "todo"),
         priority=getattr(data, "priority", 1),
+        deadline=getattr(data, "deadline", None),
         owner_id=owner_id,
+        created_at=now,
+        updated_at=now,
     )
     db.add(row)
     db.commit()
@@ -162,9 +166,10 @@ def replace_task(db: Session, task_id: int, data, *, owner_id: Optional[int] = N
     if not row:
         return None
     row.title = data.title
-    row.description = getattr(data, "description", None)
     row.status = getattr(data, "status", "todo")
     row.priority = getattr(data, "priority", 1)
+    row.deadline = getattr(data, "deadline", None)
+    row.updated_at = now_utc()
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -176,9 +181,10 @@ def update_task(db: Session, task_id: int, data, *, owner_id: Optional[int] = No
     row = get_task(db, task_id, owner_id=owner_id)
     if not row:
         return None
-    for field in ("title", "description", "status", "priority"):
+    for field in ("title", "status", "priority", "deadline"):
         if hasattr(data, field) and getattr(data, field) is not None:
             setattr(row, field, getattr(data, field))
+    row.updated_at = now_utc()
     db.add(row)
     db.commit()
     db.refresh(row)

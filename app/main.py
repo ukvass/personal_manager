@@ -25,9 +25,9 @@ from .migrations import run_startup_migrations  # NEW
 async def lifespan(app: FastAPI):
     """App startup/shutdown lifecycle."""
     # --- Startup ---
-    Base.metadata.create_all(bind=engine)
-    # Run minimal, idempotent migrations (e.g., add tasks.owner_id if missing)
+    # Run minimal, idempotent migrations BEFORE create_all so indexes recreate after schema changes
     run_startup_migrations(engine)
+    Base.metadata.create_all(bind=engine)
 
     test_db: Session | None = None
     if "PYTEST_CURRENT_TEST" in os.environ:

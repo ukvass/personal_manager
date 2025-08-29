@@ -16,7 +16,6 @@ class TaskDB(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
     status = Column(String, default="todo")  # todo | in_progress | done
     priority = Column(Integer, default=1)     # 1..5
     deadline = Column(DateTime, nullable=True)
