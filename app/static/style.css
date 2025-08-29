@@ -78,7 +78,7 @@ input, select, button { background: var(--panel-2); color: var(--text); border: 
 .grid .actions { display: flex; align-items: flex-end }
 
 /* Actions bar inside cards */
-.actions { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
+.actions { display: flex; align-items: center; gap: 8px; margin-top: var(--space-2); }
 
 .btn { background: #e7eefc; border: 1px solid var(--brand-700); color: #1f2b4a; cursor: pointer; padding: 10px 12px; border-radius: var(--radius-sm) }
 .btn:hover { filter: brightness(1.01) }
@@ -87,16 +87,16 @@ input, select, button { background: var(--panel-2); color: var(--text); border: 
 .btn-success { background: var(--success); border-color: #6ac493 }
 
 /* Table */
-.table { display: flex; flex-direction: column; gap: 4px }
-.row { display: grid; grid-template-columns: 32px 72px minmax(0, 1fr) 220px 100px 140px; align-items: center; gap: 8px; padding: 6px 0; }
+.table { display: flex; flex-direction: column; gap: 2px }
+.row { display: grid; grid-template-columns: 32px 72px minmax(0, 1fr) 220px 100px 140px; align-items: center; gap: 6px; padding: 5px 0; }
 .row.header { color: var(--muted); font-weight: 600; border-bottom: 1px dashed var(--line); padding-bottom: 8px }
 .row > * { min-width: 0 }
-.row-actions { display: flex; gap: 10px; justify-content: flex-start }
+.row-actions { display: flex; gap: 6px; justify-content: flex-start }
 
 /* Cells */
-.status-cell, .priority-cell, .title-cell { display: flex; align-items: center; gap: .5rem }
+.status-cell, .priority-cell, .title-cell { display: flex; align-items: center; gap: .35rem }
 .status-emoji { font-size: 1.1rem; line-height: 1 }
-.status-cell select { margin-left: .4rem }
+.status-cell select { margin-left: .25rem }
 .title-cell input { width: 100%; }
 
 /* Utils */
