@@ -60,10 +60,9 @@ def _get_user_from_cookie(request: Request, db: Session) -> Optional[UserDB]:
 
 
 def _build_context(request: Request, db: Session) -> dict:
-    """Common template context: request + user(+email) if logged in."""
+    """Common template context: user(+email) if logged in (request is auto-injected)."""
     user = _get_user_from_cookie(request, db)
     return {
-        "request": request,
         "user": user,
         "user_email": user.email if user else None,
     }
@@ -72,8 +71,8 @@ def _build_context(request: Request, db: Session) -> dict:
 @router.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
     # user not required here; topbar can hide logout/email automatically
-    ctx = {"request": request, "error": None}
-    resp = templates.TemplateResponse("login.html", ctx)
+    ctx = {"error": None}
+    resp = templates.TemplateResponse(request, "login.html", ctx)
     token = set_csrf_cookie(resp)
     ctx["csrf_token"] = token
     return resp
@@ -90,15 +89,15 @@ def login_submit(
     email = (email or "").strip()
     password = (password or "")
     if not email or not password:
-        ctx = {"request": request, "error": "Email and password are required."}
-        resp = templates.TemplateResponse("login.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST)
+        ctx = {"error": "Email and password are required."}
+        resp = templates.TemplateResponse(request, "login.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST)
         ctx["csrf_token"] = set_csrf_cookie(resp)
         return resp
 
     user = db.query(UserDB).filter(UserDB.email == email).one_or_none()
     if not user or not verify_password(password, user.password_hash):
-        ctx = {"request": request, "error": "Invalid email or password."}
-        resp = templates.TemplateResponse("login.html", ctx, status_code=http_status.HTTP_401_UNAUTHORIZED)
+        ctx = {"error": "Invalid email or password."}
+        resp = templates.TemplateResponse(request, "login.html", ctx, status_code=http_status.HTTP_401_UNAUTHORIZED)
         ctx["csrf_token"] = set_csrf_cookie(resp)
         return resp
 
@@ -147,7 +146,7 @@ def index(
         "q": q or "", "order_by": order_by, "order_dir": order_dir,
     })
     # Ensure CSRF cookie/token for forms on the page
-    resp = templates.TemplateResponse("index.html", ctx)
+    resp = templates.TemplateResponse(request, "index.html", ctx)
     token = request.cookies.get(settings.CSRF_COOKIE_NAME)
     if not token:
         token = set_csrf_cookie(resp)
@@ -221,7 +220,7 @@ def change_status_web(request: Request, task_id: int, status_new: str = Form(...
 
     if request.headers.get("HX-Request") == "true":
         row = db_get_task(db, task_id, owner_id=user.id)
-        return templates.TemplateResponse("partials/status_cell.html", {"request": request, "t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
+        return templates.TemplateResponse(request, "partials/status_cell.html", {"t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
     return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
 
@@ -244,7 +243,7 @@ def change_priority_web(request: Request, task_id: int, priority_new: int = Form
 
     if request.headers.get("HX-Request") == "true":
         row = db_get_task(db, task_id, owner_id=user.id)
-        return templates.TemplateResponse("partials/priority_cell.html", {"request": request, "t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
+        return templates.TemplateResponse(request, "partials/priority_cell.html", {"t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
     return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
 
@@ -267,5 +266,5 @@ def change_title_web(request: Request, task_id: int, title_new: str = Form(...),
 
     if request.headers.get("HX-Request") == "true":
         row = db_get_task(db, task_id, owner_id=user.id)
-        return templates.TemplateResponse("partials/title_cell.html", {"request": request, "t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
+        return templates.TemplateResponse(request, "partials/title_cell.html", {"t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
     return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)

@@ -20,7 +20,7 @@ from .models import UserPublic
 
 # OAuth2 password flow
 # Point tokenUrl to versioned endpoint for accurate OpenAPI; routes are mounted under /api/v1 as well
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 # --- Password helpers (bcrypt, no passlib) ---

@@ -6,6 +6,7 @@
 # - .env поддерживается без устаревших конструкций.
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
@@ -58,7 +59,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_STORAGE_URI: str = "memory://"  # use redis://... in prod/docker
     RATE_LIMIT_LOGIN: str = "5/minute"
-    RATE_LIMIT_REGISTER: str = "3/minute"
+    RATE_LIMIT_REGISTER: str = "4/minute"
     REDIS_URL: str | None = None
 
     # Pydantic v2 settings config

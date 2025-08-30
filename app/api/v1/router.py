@@ -10,4 +10,3 @@ api_router = APIRouter(prefix="/api/v1")
 # Mount existing routers so endpoints are available at /api/v1/tasks and /api/v1/auth
 api_router.include_router(tasks_router.router)
 api_router.include_router(auth_router.router)
-
