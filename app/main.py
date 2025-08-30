@@ -137,7 +137,21 @@ async def security_headers(request, call_next):
     )
     # CSP and HSTS (HSTS only when explicitly enabled)
     if settings.SECURITY_CSP:
-        response.headers.setdefault("Content-Security-Policy", settings.SECURITY_CSP)
+        csp = settings.SECURITY_CSP
+        path = request.url.path
+        if path.startswith("/docs") or path.startswith("/redoc"):
+            # Swagger/ReDoc need inline scripts and styles + CDN assets
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; "
+                "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "img-src 'self' https: data:; "
+                "font-src 'self' https://cdn.jsdelivr.net data:; "
+                "connect-src 'self'; "
+                "frame-ancestors 'none'"
+            )
+        # Always set/override CSP for clarity on these routes
+        response.headers["Content-Security-Policy"] = csp
     if settings.SECURITY_ENABLE_HSTS:
         # 6 months + preload; adjust as needed in prod
         response.headers.setdefault("Strict-Transport-Security", "max-age=15552000; includeSubDomains; preload")

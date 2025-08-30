@@ -18,3 +18,7 @@ prometheus-fastapi-instrumentator
 itsdangerous
 slowapi
 redis
+ruff
+black
+mypy
+pre-commit

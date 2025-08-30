@@ -72,9 +72,11 @@ def _build_context(request: Request, db: Session) -> dict:
 def login_form(request: Request):
     # user not required here; topbar can hide logout/email automatically
     ctx = {"error": None}
+    from ..security import generate_csrf_token
+    csrf_token = generate_csrf_token()
+    ctx["csrf_token"] = csrf_token
     resp = templates.TemplateResponse(request, "login.html", ctx)
-    token = set_csrf_cookie(resp)
-    ctx["csrf_token"] = token
+    set_csrf_cookie(resp, csrf_token)
     return resp
 
 
@@ -89,16 +91,20 @@ def login_submit(
     email = (email or "").strip()
     password = (password or "")
     if not email or not password:
-        ctx = {"error": "Email and password are required."}
+        from ..security import generate_csrf_token
+        csrf_token = generate_csrf_token()
+        ctx = {"error": "Email and password are required.", "csrf_token": csrf_token}
         resp = templates.TemplateResponse(request, "login.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST)
-        ctx["csrf_token"] = set_csrf_cookie(resp)
+        set_csrf_cookie(resp, csrf_token)
         return resp
 
     user = db.query(UserDB).filter(UserDB.email == email).one_or_none()
     if not user or not verify_password(password, user.password_hash):
-        ctx = {"error": "Invalid email or password."}
+        from ..security import generate_csrf_token
+        csrf_token = generate_csrf_token()
+        ctx = {"error": "Invalid email or password.", "csrf_token": csrf_token}
         resp = templates.TemplateResponse(request, "login.html", ctx, status_code=http_status.HTTP_401_UNAUTHORIZED)
-        ctx["csrf_token"] = set_csrf_cookie(resp)
+        set_csrf_cookie(resp, csrf_token)
         return resp
 
     token = create_access_token(email)
@@ -146,13 +152,13 @@ def index(
         "q": q or "", "order_by": order_by, "order_dir": order_dir,
     })
     # Ensure CSRF cookie/token for forms on the page
-    resp = templates.TemplateResponse(request, "index.html", ctx)
+    from ..security import generate_csrf_token
     token = request.cookies.get(settings.CSRF_COOKIE_NAME)
     if not token:
-        token = set_csrf_cookie(resp)
-    else:
-        set_csrf_cookie(resp, token)
+        token = generate_csrf_token()
     ctx["csrf_token"] = token
+    resp = templates.TemplateResponse(request, "index.html", ctx)
+    set_csrf_cookie(resp, token)
     return resp
 
 

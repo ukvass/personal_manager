@@ -21,3 +21,20 @@ downgrade:
 # Convenience alias to apply latest migrations
 db-up:
 	alembic upgrade head
+
+# --- Code quality ---
+
+lint:
+	ruff check . && black --check .
+
+format:
+	ruff check --fix . && black .
+
+type-check:
+	mypy .
+
+precommit-install:
+	pre-commit install
+
+precommit-run:
+	pre-commit run --all-files
