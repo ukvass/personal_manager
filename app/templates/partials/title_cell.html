@@ -14,6 +14,7 @@
         hx-trigger="change from:#title-input-{{ t.id }}, keyup[key=='Enter'] from:#title-input-{{ t.id }}"
         hx-target="#title-cell-{{ t.id }}"
         hx-swap="outerHTML">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
     <input id="title-input-{{ t.id }}"
            name="title_new"
            value="{{ t.title }}"

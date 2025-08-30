@@ -4,6 +4,7 @@
 -->
 <div class="status-cell" id="status-cell-{{ t.id }}">
   <form method="post" action="/ui/tasks/{{ t.id }}/status" class="inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
     <span class="status-emoji">
       {% if t.status == 'todo' %}✍️{% elif t.status == 'in_progress' %}⏳{% elif t.status == 'done' %}✅{% endif %}
     </span>

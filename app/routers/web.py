@@ -35,6 +35,7 @@ from ..api.deps import (
     parse_order_by,
     parse_order_dir,
 )
+from ..security import set_csrf_cookie, ensure_csrf
 
 templates_dir = ilres.files("app").joinpath("templates")
 templates = Jinja2Templates(directory=str(templates_dir))
@@ -71,7 +72,11 @@ def _build_context(request: Request, db: Session) -> dict:
 @router.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
     # user not required here; topbar can hide logout/email automatically
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    ctx = {"request": request, "error": None}
+    resp = templates.TemplateResponse("login.html", ctx)
+    token = set_csrf_cookie(resp)
+    ctx["csrf_token"] = token
+    return resp
 
 
 @router.post("/login")
@@ -80,21 +85,22 @@ def login_submit(
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db),
+    _csrf=Depends(ensure_csrf),
 ):
     email = (email or "").strip()
     password = (password or "")
     if not email or not password:
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "Email and password are required."},
-            status_code=http_status.HTTP_400_BAD_REQUEST,
-        )
+        ctx = {"request": request, "error": "Email and password are required."}
+        resp = templates.TemplateResponse("login.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST)
+        ctx["csrf_token"] = set_csrf_cookie(resp)
+        return resp
 
     user = db.query(UserDB).filter(UserDB.email == email).one_or_none()
     if not user or not verify_password(password, user.password_hash):
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "Invalid email or password."},
-            status_code=http_status.HTTP_401_UNAUTHORIZED,
-        )
+        ctx = {"request": request, "error": "Invalid email or password."}
+        resp = templates.TemplateResponse("login.html", ctx, status_code=http_status.HTTP_401_UNAUTHORIZED)
+        ctx["csrf_token"] = set_csrf_cookie(resp)
+        return resp
 
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
@@ -104,7 +110,7 @@ def login_submit(
 
 
 @router.post("/logout")
-def logout():
+def logout(_csrf=Depends(ensure_csrf)):
     resp = RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
     resp.delete_cookie("access_token")
     return resp
@@ -140,7 +146,15 @@ def index(
         "status": status, "priority": priority,
         "q": q or "", "order_by": order_by, "order_dir": order_dir,
     })
-    return templates.TemplateResponse("index.html", ctx)
+    # Ensure CSRF cookie/token for forms on the page
+    resp = templates.TemplateResponse("index.html", ctx)
+    token = request.cookies.get(settings.CSRF_COOKIE_NAME)
+    if not token:
+        token = set_csrf_cookie(resp)
+    else:
+        set_csrf_cookie(resp, token)
+    ctx["csrf_token"] = token
+    return resp
 
 
 @router.post("/ui/tasks")
@@ -150,6 +164,7 @@ def create_task_web(
     priority: int = Form(1),
     # description removed
     db: Session = Depends(get_db),
+    _csrf=Depends(ensure_csrf),
 ):
     user = _get_user_from_cookie(request, db)
     if not user:
@@ -165,7 +180,7 @@ def create_task_web(
 
 
 @router.post("/ui/tasks/{task_id}/delete")
-def delete_task_web(request: Request, task_id: int, db: Session = Depends(get_db)):
+def delete_task_web(request: Request, task_id: int, db: Session = Depends(get_db), _csrf=Depends(ensure_csrf)):
     user = _get_user_from_cookie(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
@@ -174,7 +189,7 @@ def delete_task_web(request: Request, task_id: int, db: Session = Depends(get_db
 
 
 @router.post("/ui/bulk_delete")
-def bulk_delete_web(request: Request, ids: List[int] = Form(...), db: Session = Depends(get_db)):
+def bulk_delete_web(request: Request, ids: List[int] = Form(...), db: Session = Depends(get_db), _csrf=Depends(ensure_csrf)):
     user = _get_user_from_cookie(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
@@ -183,7 +198,7 @@ def bulk_delete_web(request: Request, ids: List[int] = Form(...), db: Session = 
 
 
 @router.post("/ui/bulk_complete")
-def bulk_complete_web(request: Request, ids: List[int] = Form(...), db: Session = Depends(get_db)):
+def bulk_complete_web(request: Request, ids: List[int] = Form(...), db: Session = Depends(get_db), _csrf=Depends(ensure_csrf)):
     user = _get_user_from_cookie(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
@@ -192,11 +207,11 @@ def bulk_complete_web(request: Request, ids: List[int] = Form(...), db: Session 
 
 
 @router.post("/ui/tasks/{task_id}/status", response_class=HTMLResponse)
-def change_status_web(request: Request, task_id: int, status_new: str = Form(...), db: Session = Depends(get_db)):
+def change_status_web(request: Request, task_id: int, status_new: str = Form(...), db: Session = Depends(get_db), _csrf=Depends(ensure_csrf)):
     user = _get_user_from_cookie(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
-    if status_new not in VALID_STATUS:
+    if status_new not in {"todo", "in_progress", "done"}:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
     data = TaskUpdate(status=status_new)
@@ -206,12 +221,12 @@ def change_status_web(request: Request, task_id: int, status_new: str = Form(...
 
     if request.headers.get("HX-Request") == "true":
         row = db_get_task(db, task_id, owner_id=user.id)
-        return templates.TemplateResponse("partials/status_cell.html", {"request": request, "t": row})
+        return templates.TemplateResponse("partials/status_cell.html", {"request": request, "t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
     return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/ui/tasks/{task_id}/priority", response_class=HTMLResponse)
-def change_priority_web(request: Request, task_id: int, priority_new: int = Form(...), db: Session = Depends(get_db)):
+def change_priority_web(request: Request, task_id: int, priority_new: int = Form(...), db: Session = Depends(get_db), _csrf=Depends(ensure_csrf)):
     user = _get_user_from_cookie(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
@@ -229,12 +244,12 @@ def change_priority_web(request: Request, task_id: int, priority_new: int = Form
 
     if request.headers.get("HX-Request") == "true":
         row = db_get_task(db, task_id, owner_id=user.id)
-        return templates.TemplateResponse("partials/priority_cell.html", {"request": request, "t": row})
+        return templates.TemplateResponse("partials/priority_cell.html", {"request": request, "t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
     return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/ui/tasks/{task_id}/title", response_class=HTMLResponse)
-def change_title_web(request: Request, task_id: int, title_new: str = Form(...), db: Session = Depends(get_db)):
+def change_title_web(request: Request, task_id: int, title_new: str = Form(...), db: Session = Depends(get_db), _csrf=Depends(ensure_csrf)):
     user = _get_user_from_cookie(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
@@ -252,5 +267,5 @@ def change_title_web(request: Request, task_id: int, title_new: str = Form(...),
 
     if request.headers.get("HX-Request") == "true":
         row = db_get_task(db, task_id, owner_id=user.id)
-        return templates.TemplateResponse("partials/title_cell.html", {"request": request, "t": row})
+        return templates.TemplateResponse("partials/title_cell.html", {"request": request, "t": row, "csrf_token": request.cookies.get(settings.CSRF_COOKIE_NAME, "")})
     return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)

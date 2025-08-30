@@ -12,6 +12,7 @@
   <section class="card">
     <h2>Create task</h2>
     <form method="post" action="/ui/tasks" class="grid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
       <label>Title
         <input name="title" required maxlength="120">
       </label>
@@ -88,6 +89,7 @@
 
           <div class="row-actions">
             <form method="post" action="/ui/tasks/{{ t.id }}/delete" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
               <button class="btn btn-danger" type="submit">Delete</button>
             </form>
           </div>
@@ -98,11 +100,14 @@
     </div>
 
     <!-- separate forms for bulk actions -->
-    <form id="bulk-form" method="post" action="/ui/bulk_delete"></form>
+    <form id="bulk-form" method="post" action="/ui/bulk_delete">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
+    </form>
 
     <div class="actions">
       <button class="btn btn-danger" form="bulk-form" type="submit">Bulk delete</button>
       <form method="post" action="/ui/bulk_complete">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
         {% for t in tasks %}
           <input type="hidden" name="ids" value="{{ t.id }}">
         {% endfor %}

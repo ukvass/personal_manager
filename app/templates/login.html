@@ -9,6 +9,7 @@
     <div class="alert alert-error">{{ error }}</div>
   {% endif %}
   <form method="post" action="/login" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
     <label>Email
       <input type="email" name="email" required>
     </label>

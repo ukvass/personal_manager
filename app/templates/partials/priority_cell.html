@@ -4,6 +4,7 @@
 -->
 <div class="priority-cell" id="priority-cell-{{ t.id }}">
   <form method="post" action="/ui/tasks/{{ t.id }}/priority" class="inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
     <select name="priority_new"
             hx-post="/ui/tasks/{{ t.id }}/priority"
             hx-include="closest form"
