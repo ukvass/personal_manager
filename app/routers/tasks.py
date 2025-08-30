@@ -52,6 +52,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 @router.get("/", response_model=list[Task])
 async def list_tasks(
+    response: Response,
     status: Status | None = None,
     priority: int | None = Depends(parse_priority),
     q: str | None = None,
@@ -61,7 +62,6 @@ async def list_tasks(
     order_dir: OrderDir = Depends(parse_order_dir),
     db: Session = Depends(get_db),
     user: UserPublic = Depends(get_current_user),
-    response: Response = None,
 ):
     total = db_count_tasks(db, owner_id=user.id, status=status, priority=priority, q=q)
     items = db_list_tasks(
@@ -75,8 +75,7 @@ async def list_tasks(
         order_by=order_by,
         order_dir=order_dir,
     )
-    if response is not None:
-        response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Total-Count"] = str(total)
     return items
 
 

@@ -43,6 +43,9 @@ async def extract_csrf_from_request(request: Request) -> str | None:
         try:
             form = await request.form()
             token = form.get(settings.CSRF_FORM_FIELD)
+            if isinstance(token, str):
+                return token
+            token = form.get(settings.CSRF_FORM_FIELD)
             if token:
                 return token
         except Exception:

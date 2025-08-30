@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
 
@@ -28,10 +28,10 @@ class TaskDB(Base):
 
 class UserDB(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)  # unique login
-    password_hash = Column(String, nullable=False)  # store hash, not raw password
-    created_at = Column(DateTime, default=now_utc)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
     # relationship to tasks
     tasks = relationship("TaskDB", backref="owner")
 

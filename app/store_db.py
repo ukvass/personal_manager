@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Sequence, List
+from typing import Optional, Sequence, List, Any
 
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session
@@ -60,7 +60,7 @@ def _apply_ordering(query, *, order_by: str, order_dir: str):
     """
     # primary key expression
     if order_by == "priority":
-        primary = func.coalesce(TaskDB.priority, 0)
+        primary: Any = func.coalesce(TaskDB.priority, 0)
     elif order_by == "status":
         # Map textual status to integer rank: todo(0) < in_progress(1) < done(2)
         primary = case(

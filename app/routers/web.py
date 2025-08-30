@@ -4,7 +4,7 @@
 # - index() использует _build_context() и гарантированно прокидывает email.
 # - Остальная логика без изменений.
 
-from typing import Optional, List
+from typing import Any
 from fastapi import APIRouter, Request, Depends, Form, status as http_status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -26,7 +26,7 @@ from ..store_db import (
     get_task as db_get_task,
 )
 from ..auth import verify_password, create_access_token, get_access_token_ttl_minutes, hash_password
-from ..models import TaskCreate, TaskUpdate
+from ..models import TaskCreate, TaskUpdate, Status
 from ..api.deps import (
     OrderBy,
     OrderDir,
@@ -44,7 +44,7 @@ templates = Jinja2Templates(directory=str(templates_dir))
 router = APIRouter(tags=["web"])
 
 
-def _get_user_from_cookie(request: Request, db: Session) -> Optional[UserDB]:
+def _get_user_from_cookie(request: Request, db: Session) -> UserDB | None:
     token = request.cookies.get("access_token")
     if not token:
         return None
@@ -70,7 +70,7 @@ def _build_context(request: Request, db: Session) -> dict:
 @router.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
     # user not required here; topbar can hide logout/email automatically
-    ctx = {"error": None}
+    ctx: dict[str, Any] = {"error": None}
     from ..security import generate_csrf_token
 
     csrf_token = generate_csrf_token()
@@ -115,15 +115,15 @@ def login_submit(
 
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
-    resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
-    resp.set_cookie("access_token", token, httponly=True, max_age=60 * minutes, samesite="lax")
-    return resp
+    redirect_resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
+    redirect_resp.set_cookie("access_token", token, httponly=True, max_age=60 * minutes, samesite="lax")
+    return redirect_resp
 
 
 @router.get("/register", response_class=HTMLResponse)
 def register_form(request: Request):
     # Render registration form with CSRF token
-    ctx = {"error": None}
+    ctx: dict[str, Any] = {"error": None}
     from ..security import generate_csrf_token
 
     csrf_token = generate_csrf_token()
@@ -160,7 +160,7 @@ def register_submit(
         from ..security import generate_csrf_token
 
         csrf_token = generate_csrf_token()
-        ctx = {"error": "Email already registered.", "csrf_token": csrf_token}
+        ctx: dict[str, Any] = {"error": "Email already registered.", "csrf_token": csrf_token}
         resp = templates.TemplateResponse(
             request, "register.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST
         )
@@ -176,9 +176,9 @@ def register_submit(
     # Issue login cookie
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
-    resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
-    resp.set_cookie("access_token", token, httponly=True, max_age=60 * minutes, samesite="lax")
-    return resp
+    redirect_resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
+    redirect_resp.set_cookie("access_token", token, httponly=True, max_age=60 * minutes, samesite="lax")
+    return redirect_resp
 
 
 @router.post("/logout")
@@ -191,9 +191,9 @@ def logout(_csrf=Depends(ensure_csrf)):
 @router.get("/", response_class=HTMLResponse)
 def index(
     request: Request,
-    status: Optional[str] = Depends(parse_status),
-    priority: Optional[int] = Depends(parse_priority),
-    q: Optional[str] = None,
+    status: Status | None = Depends(parse_status),
+    priority: int | None = Depends(parse_priority),
+    q: str | None = None,
     limit: int = 20,
     offset: int = 0,
     order_by: OrderBy = Depends(parse_order_by),
@@ -278,7 +278,7 @@ def delete_task_web(
 @router.post("/ui/bulk_delete")
 def bulk_delete_web(
     request: Request,
-    ids: List[int] = Form(...),
+    ids: list[int] = Form(...),
     db: Session = Depends(get_db),
     _csrf=Depends(ensure_csrf),
 ):
@@ -292,7 +292,7 @@ def bulk_delete_web(
 @router.post("/ui/bulk_complete")
 def bulk_complete_web(
     request: Request,
-    ids: List[int] = Form(...),
+    ids: list[int] = Form(...),
     db: Session = Depends(get_db),
     _csrf=Depends(ensure_csrf),
 ):
