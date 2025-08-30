@@ -18,34 +18,22 @@ from .routers import auth as auth_router
 from .routers import web as web_router
 from .auth import get_current_user, hash_password
 from .models import UserPublic
-from .migrations import run_startup_migrations  # NEW
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """App startup/shutdown lifecycle."""
     # --- Startup ---
-    # Run minimal, idempotent migrations BEFORE create_all so indexes recreate after schema changes
-    run_startup_migrations(engine)
-    Base.metadata.create_all(bind=engine)
+    # Рантайм-миграции убраны; для dev оставляем create_all, для test — пропускаем
+    is_test = "PYTEST_CURRENT_TEST" in os.environ
+    if not is_test:
+        Base.metadata.create_all(bind=engine)
 
     test_db: Session | None = None
-    if "PYTEST_CURRENT_TEST" in os.environ:
-        test_db = SessionLocal()
-        user = test_db.query(db_models.UserDB).filter(
-            db_models.UserDB.email == "test@example.com"
-        ).one_or_none()
-        if user is None:
-            user = db_models.UserDB(
-                email="test@example.com",
-                password_hash=hash_password("test-password"),
-            )
-            test_db.add(user)
-            test_db.commit()
-            test_db.refresh(user)
-
+    if is_test:
+        # В тестах не трогаем реальную БД — просто подменяем текущего пользователя
         def _test_current_user_override():
-            return UserPublic(id=user.id, email=user.email)
+            return UserPublic(id=1, email="test@example.com")
 
         app.dependency_overrides[get_current_user] = _test_current_user_override
         app.state._had_test_override = True
