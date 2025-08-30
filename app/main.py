@@ -3,7 +3,7 @@
 # - Call run_startup_migrations(engine) after metadata.create_all().
 # - Everything else kept as-is.
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -11,6 +11,7 @@ import os
 from importlib import resources as ilres
 
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from .db import Base, engine, SessionLocal
 from . import db_models
@@ -52,6 +53,7 @@ async def lifespan(app: FastAPI):
 from .api.errors import register_exception_handlers
 from .api.v1.router import api_router
 from .config import settings
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="Personal Manager", lifespan=lifespan)
 
@@ -106,3 +108,24 @@ async def security_headers(request, call_next):
         # 6 months + preload; adjust as needed in prod
         response.headers.setdefault("Strict-Transport-Security", "max-age=15552000; includeSubDomains; preload")
     return response
+
+
+# --- Observability: liveness, readiness, metrics ---
+
+@app.get("/live")
+def live():
+    return {"status": "live"}
+
+
+@app.get("/ready")
+def ready():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ready"}
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="not ready") from exc
+
+
+# Expose Prometheus metrics at /metrics
+Instrumentator().instrument(app).expose(app, include_in_schema=False)
