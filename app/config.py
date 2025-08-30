@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MIN: int = 60  # access token TTL minutes
 
+    # Database URL (12-factor). Default stays on SQLite for local dev.
+    # Examples:
+    #   sqlite:///./tasks.db
+    #   postgresql+psycopg://user:pass@localhost:5432/personal_manager
+    DATABASE_URL: str = "sqlite:///./tasks.db"
+
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
         env_file=".env",

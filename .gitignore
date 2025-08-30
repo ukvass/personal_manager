@@ -34,3 +34,6 @@ Thumbs.db
 # --- Project-specific ---
 # SQLite DB (local, do not commit)
 tasks.db
+
+# Local environment variables
+.env
