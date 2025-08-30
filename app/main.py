@@ -48,6 +48,9 @@ async def lifespan(app: FastAPI):
             test_db.close()
 
 
+from .api.errors import register_exception_handlers
+from .api.v1.router import api_router
+
 app = FastAPI(title="Personal Manager", lifespan=lifespan)
 
 
@@ -65,3 +68,9 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 app.include_router(auth_router.router)
 app.include_router(tasks.router)
 app.include_router(web_router.router)
+
+# Versioned JSON API (parallel namespace so legacy routes keep working)
+app.include_router(api_router)
+
+# Unified error handlers
+register_exception_handlers(app)
