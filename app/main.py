@@ -192,3 +192,21 @@ def ready():
 
 # Expose Prometheus metrics at /metrics
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
+
+
+# --- Legacy route deprecation helper ----------------------------------------
+
+@app.middleware("http")
+async def legacy_api_deprecation(request: Request, call_next):
+    """Mark legacy JSON endpoints (/auth, /tasks) as deprecated without breaking them.
+
+    Adds RFC 8594 style headers so clients can migrate to /api/v1 equivalents.
+    We do NOT redirect to avoid breaking older clients and tests.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    if not path.startswith("/api/v1") and (path.startswith("/auth") or path.startswith("/tasks")):
+        successor = "/api/v1" + path
+        response.headers.setdefault("Deprecation", "true")
+        response.headers.setdefault("Link", f'<{successor}>; rel="successor-version"; type="application/json"')
+    return response
