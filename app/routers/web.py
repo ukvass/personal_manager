@@ -4,8 +4,8 @@
 # - index() использует _build_context() и гарантированно прокидывает email.
 # - Остальная логика без изменений.
 
-from typing import Optional, List, Literal
-from fastapi import APIRouter, Request, Depends, Form, status as http_status, HTTPException, Query
+from typing import Optional, List
+from fastapi import APIRouter, Request, Depends, Form, status as http_status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -27,59 +27,21 @@ from ..store_db import (
 )
 from ..auth import verify_password, create_access_token, get_access_token_ttl_minutes
 from ..models import TaskCreate, TaskUpdate
+from ..api.deps import (
+    OrderBy,
+    OrderDir,
+    parse_status,
+    parse_priority,
+    parse_order_by,
+    parse_order_dir,
+)
 
 templates_dir = ilres.files("app").joinpath("templates")
 templates = Jinja2Templates(directory=str(templates_dir))
 
-OrderBy = Literal["created_at", "priority", "status", "deadline"]
-OrderDir = Literal["asc", "desc"]
 
 router = APIRouter(tags=["web"])
 
-VALID_STATUS = {"todo", "in_progress", "done"}
-
-
-def parse_status(status: Optional[str] = Query(None)) -> Optional[str]:
-    if status is None or status == "":
-        return None
-    if status in VALID_STATUS:
-        return status
-    raise HTTPException(
-        status_code=422,
-        detail=[{"type": "literal_error", "loc": ["query", "status"], "msg": "status must be one of: todo, in_progress, done", "input": status}],
-    )
-
-
-def parse_priority(priority: Optional[str] = Query(None)) -> Optional[int]:
-    if priority is None or priority == "":
-        return None
-    try:
-        return int(priority)
-    except (TypeError, ValueError):
-        raise HTTPException(
-            status_code=422,
-            detail=[{"type": "int_parsing", "loc": ["query", "priority"], "msg": "Input should be a valid integer, unable to parse string as an integer", "input": priority}],
-        )
-
-
-def parse_order_by(order_by: Optional[str] = Query(None)) -> OrderBy:
-    if not order_by:
-        return "created_at"
-    if order_by in ("created_at", "priority", "status", "deadline"):
-        return order_by  # type: ignore[return-value]
-    raise HTTPException(status_code=422, detail=[{
-        "type": "literal_error", "loc": ["query", "order_by"], "msg": "order_by must be one of: created_at, priority, status, deadline", "input": order_by
-    }])
-
-
-def parse_order_dir(order_dir: Optional[str] = Query(None), order_by: OrderBy = Depends(parse_order_by)) -> OrderDir:
-    if not order_dir:
-        return "desc"
-    if order_dir in ("asc", "desc"):
-        return order_dir  # type: ignore[return-value]
-    raise HTTPException(status_code=422, detail=[{
-        "type": "literal_error", "loc": ["query", "order_dir"], "msg": "order_dir must be 'asc' or 'desc'", "input": order_dir
-    }])
 
 
 def _get_user_from_cookie(request: Request, db: Session) -> Optional[UserDB]:

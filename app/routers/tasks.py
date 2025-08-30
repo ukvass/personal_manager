@@ -3,8 +3,8 @@
 # - Allowed 'status' in OrderBy; parsers read order_by/order_dir by name.
 # - priority empty string -> None (no filter) unchanged.
 
-from typing import Optional, List, Literal, Dict
-from fastapi import APIRouter, HTTPException, Response, status, Query, Depends
+from typing import Optional, List, Dict
+from fastapi import APIRouter, HTTPException, Response, status, Depends
 from sqlalchemy.orm import Session
 
 from ..models import Task, TaskCreate, TaskUpdate, TaskPut, Status, UserPublic, TaskIdList
@@ -22,53 +22,16 @@ from ..store_db import (
 )
 from ..auth import get_current_user
 
-OrderBy = Literal["created_at", "priority", "status", "deadline"]
-OrderDir = Literal["asc", "desc"]
+from ..api.deps import (
+    OrderBy,
+    OrderDir,
+    parse_priority,
+    parse_order_by,
+    parse_order_dir,
+)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-
-def parse_priority(priority: Optional[str] = Query(None)) -> Optional[int]:
-    if priority is None or priority == "":
-        return None
-    try:
-        return int(priority)
-    except (TypeError, ValueError):
-        raise HTTPException(
-            status_code=422,
-            detail=[{
-                "type": "int_parsing",
-                "loc": ["query", "priority"],
-                "msg": "Input should be a valid integer, unable to parse string as an integer",
-                "input": priority,
-            }],
-        )
-
-
-def parse_order_by(order_by: Optional[str] = Query(None)) -> OrderBy:
-    if not order_by:
-        return "created_at"
-    if order_by in ("created_at", "priority", "status", "deadline"):
-        return order_by  # type: ignore[return-value]
-    raise HTTPException(status_code=422, detail=[{
-        "type": "literal_error",
-        "loc": ["query", "order_by"],
-        "msg": "order_by must be one of: created_at, priority, status, deadline",
-        "input": order_by,
-    }])
-
-
-def parse_order_dir(order_dir: Optional[str] = Query(None), order_by: OrderBy = Depends(parse_order_by)) -> OrderDir:
-    if not order_dir:
-        return "desc"
-    if order_dir in ("asc", "desc"):
-        return order_dir  # type: ignore[return-value]
-    raise HTTPException(status_code=422, detail=[{
-        "type": "literal_error",
-        "loc": ["query", "order_dir"],
-        "msg": "order_dir must be 'asc' or 'desc'",
-        "input": order_dir,
-    }])
 
 
 @router.get("/", response_model=List[Task])
@@ -76,8 +39,8 @@ async def list_tasks(
     status: Optional[Status] = None,
     priority: Optional[int] = Depends(parse_priority),
     q: Optional[str] = None,
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    limit: int = 20,
+    offset: int = 0,
     order_by: OrderBy = Depends(parse_order_by),
     order_dir: OrderDir = Depends(parse_order_dir),
     db: Session = Depends(get_db),
