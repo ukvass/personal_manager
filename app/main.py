@@ -3,27 +3,30 @@
 # - Call run_startup_migrations(engine) after metadata.create_all().
 # - Everything else kept as-is.
 
-from fastapi import FastAPI, HTTPException, status, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
-from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-import os
-from importlib import resources as ilres
-
-from sqlalchemy.orm import Session
-from sqlalchemy import text
 import logging
+import os
 import time
 import uuid
+from contextlib import asynccontextmanager
+from importlib import resources as ilres
 
-from .db import Base, engine, SessionLocal
-from . import db_models
-from .routers import tasks
-from .routers import auth as auth_router
-from .routers import web as web_router
-from .auth import get_current_user, hash_password
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+
+from .auth import get_current_user
+from .db import engine
 from .models import UserPublic
+from .routers import auth as auth_router
+from .routers import tasks
+from .routers import web as web_router
 
 
 @asynccontextmanager
@@ -59,10 +62,7 @@ from .api.errors import register_exception_handlers
 from .api.v1.router import api_router
 from .config import settings
 from .logging_utils import setup_logging
-from prometheus_fastapi_instrumentator import Instrumentator
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
-from .rate_limit import limiter, _rate_limit_exceeded_handler
+from .rate_limit import _rate_limit_exceeded_handler, limiter
 
 tags_metadata = [
     {"name": "auth", "description": "Authentication: register, login, me."},
@@ -106,9 +106,9 @@ register_exception_handlers(app)
 
 # Rate limiting (global middleware + handler)
 app.state.limiter = limiter
-from slowapi.errors import RateLimitExceeded as _RLE # guard duplicate import in case of re-run
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
 
 # Request ID + access log middleware
 @app.middleware("http")
@@ -130,6 +130,7 @@ async def request_id_and_logging(request: Request, call_next):
     )
     return response
 
+
 # --- Security: CORS and security headers ---
 
 app.add_middleware(
@@ -139,6 +140,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.middleware("http")
 async def security_headers(request, call_next):
@@ -170,11 +172,14 @@ async def security_headers(request, call_next):
         response.headers["Content-Security-Policy"] = csp
     if settings.SECURITY_ENABLE_HSTS:
         # 6 months + preload; adjust as needed in prod
-        response.headers.setdefault("Strict-Transport-Security", "max-age=15552000; includeSubDomains; preload")
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=15552000; includeSubDomains; preload"
+        )
     return response
 
 
 # --- Observability: liveness, readiness, metrics ---
+
 
 @app.get("/live")
 def live():
@@ -188,7 +193,9 @@ def ready():
             conn.execute(text("SELECT 1"))
         return {"status": "ready"}
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="not ready") from exc
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="not ready"
+        ) from exc
 
 
 # Expose Prometheus metrics at /metrics
@@ -196,6 +203,7 @@ Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 
 # --- Legacy route deprecation helper ----------------------------------------
+
 
 @app.middleware("http")
 async def legacy_api_deprecation(request: Request, call_next):
@@ -209,5 +217,6 @@ async def legacy_api_deprecation(request: Request, call_next):
         if request.url.query:
             successor = successor + "?" + request.url.query
         from fastapi.responses import RedirectResponse as _RR
+
         return _RR(url=successor, status_code=308)
     return await call_next(request)

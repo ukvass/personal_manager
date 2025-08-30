@@ -19,4 +19,3 @@ def test_login_csrf_valid_token_but_bad_credentials(client):
     )
     # CSRF passed, but credentials are wrong → 401 Unauthorized
     assert r_post.status_code == 401
-

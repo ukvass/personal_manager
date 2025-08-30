@@ -15,4 +15,3 @@ limiter = Limiter(
 )
 
 __all__ = ["limiter", "_rate_limit_exceeded_handler"]
-

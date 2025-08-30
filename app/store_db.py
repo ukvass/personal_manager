@@ -16,9 +16,11 @@ from .db_models import TaskDB, now_utc
 
 # --- Session dependency ----------------------------------------------------
 
+
 def get_db():
     """Yield a SQLAlchemy session (used as a FastAPI dependency)."""
     from .db import SessionLocal
+
     db = SessionLocal()
     try:
         yield db
@@ -27,6 +29,7 @@ def get_db():
 
 
 # --- Helpers ---------------------------------------------------------------
+
 
 def _apply_common_filters(
     query,
@@ -84,6 +87,7 @@ def _apply_ordering(query, *, order_by: str, order_dir: str):
 
 
 # --- CRUD: Tasks -----------------------------------------------------------
+
 
 def list_tasks(
     db: Session,
@@ -202,6 +206,7 @@ def delete_task(db: Session, task_id: int, *, owner_id: Optional[int] = None) ->
 
 
 # --- Bulk ops --------------------------------------------------------------
+
 
 def bulk_delete_tasks(db: Session, ids: Sequence[int], *, owner_id: Optional[int] = None) -> int:
     """Delete many tasks by IDs; only deletes owned tasks if owner_id is set."""

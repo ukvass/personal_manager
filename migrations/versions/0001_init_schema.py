@@ -1,10 +1,11 @@
 """init schema (users, tasks)
 
 Revision ID: 0001_init_schema
-Revises: 
+Revises:
 Create Date: 2025-08-30 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -43,7 +44,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=True),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.Column("owner_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["owner_id"], ["users.id"], ),
+        sa.ForeignKeyConstraint(
+            ["owner_id"],
+            ["users.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_tasks_status"), "tasks", ["status"], unique=False)
@@ -59,4 +63,3 @@ def downgrade() -> None:
     op.drop_index("ux_users_email", table_name="users")
     op.drop_index(op.f("ix_users_id"), table_name="users")
     op.drop_table("users")
-

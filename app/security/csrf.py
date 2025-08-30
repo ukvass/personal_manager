@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
-
-from fastapi import Depends, HTTPException, Request, status
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from fastapi import HTTPException, Request, status
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from ..config import settings
 
@@ -23,7 +21,7 @@ def generate_csrf_token() -> str:
     return s.dumps(payload)
 
 
-def validate_csrf_token(token: str, max_age: Optional[int] = None) -> bool:
+def validate_csrf_token(token: str, max_age: int | None = None) -> bool:
     """Validate CSRF token signature and optional TTL."""
     if not token:
         return False
@@ -35,7 +33,7 @@ def validate_csrf_token(token: str, max_age: Optional[int] = None) -> bool:
         return False
 
 
-async def extract_csrf_from_request(request: Request) -> Optional[str]:
+async def extract_csrf_from_request(request: Request) -> str | None:
     """Get CSRF token from header or form body (supports regular forms and AJAX)."""
     header = request.headers.get(settings.CSRF_HEADER_NAME)
     if header:
@@ -54,7 +52,7 @@ async def extract_csrf_from_request(request: Request) -> Optional[str]:
     return None
 
 
-def set_csrf_cookie(response, token: Optional[str] = None) -> str:
+def set_csrf_cookie(response, token: str | None = None) -> str:
     """Ensure CSRF cookie is set; returns the token used."""
     t = token or generate_csrf_token()
     response.set_cookie(

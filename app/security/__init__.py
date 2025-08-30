@@ -15,4 +15,3 @@ __all__ = [
     "ensure_csrf",
     "set_csrf_cookie",
 ]
-

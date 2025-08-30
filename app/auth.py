@@ -4,13 +4,13 @@
 # - create_access_token() now uses the safe TTL (fallback to 60 on bad env).
 # - Public API unchanged; rest of logic as before.
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
-import bcrypt
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -24,6 +24,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 # --- Password helpers (bcrypt, no passlib) ---
+
 
 def hash_password(password: str) -> str:
     """Return a bcrypt hash for the given plain password."""
@@ -46,6 +47,7 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
 
 # --- DB dependency ---
 
+
 def get_db():
     """Yield a SQLAlchemy Session; mirrors store_db.get_db usage pattern."""
     db = SessionLocal()
@@ -57,8 +59,9 @@ def get_db():
 
 # --- JWT helpers ---
 
+
 def _now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def get_access_token_ttl_minutes() -> int:
@@ -72,14 +75,14 @@ def get_access_token_ttl_minutes() -> int:
         return 60
 
 
-def create_access_token(subject: str | Dict[str, Any]) -> str:
+def create_access_token(subject: str | dict[str, Any]) -> str:
     """
     Create a signed JWT for a user.
     - `subject` can be email (str) or payload dict; we always include `sub`.
     - Expiration controlled by settings.JWT_EXPIRE_MIN (safely parsed).
     """
     if isinstance(subject, str):
-        payload: Dict[str, Any] = {"sub": subject}
+        payload: dict[str, Any] = {"sub": subject}
     else:
         payload = {**subject}
         payload.setdefault("sub", subject.get("email") or subject.get("sub"))
@@ -91,7 +94,9 @@ def create_access_token(subject: str | Dict[str, Any]) -> str:
     return token
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserPublic:
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> UserPublic:
     """Decode JWT, load user by email (sub), return public user schema."""
     cred_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -103,8 +108,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         subject = payload.get("sub")
         if subject is None:
             raise cred_error
-    except JWTError:
-        raise cred_error
+    except JWTError as err:
+        raise cred_error from err
 
     row = db.query(UserDB).filter(UserDB.email == subject).one_or_none()
     if row is None:

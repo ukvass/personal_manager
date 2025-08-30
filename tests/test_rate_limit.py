@@ -36,4 +36,3 @@ def test_register_rate_limit(client):
         json={"email": "rate3@example.com", "password": "x"},
     )
     assert r4.status_code == 429
-

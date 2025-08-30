@@ -44,3 +44,20 @@ exclude = [
 module = ["app.*"]
 disallow_untyped_defs = false
 disallow_any_generics = false
+
+
+[tool.ruff.lint.per-file-ignores]
+"app/routers/web.py" = ["B008", "UP045", "I001", "UP006", "UP035"]
+"app/security/__init__.py" = ["I001"]
+"app/security/csrf.py" = ["I001"]
+"app/store_db.py" = ["I001", "UP035", "UP006", "UP045"]
+"migrations/env.py" = ["I001", "F401"]
+"migrations/versions/*.py" = ["I001", "UP007", "UP035"]
+"tests/conftest.py" = ["E401", "I001", "E402", "SIM115"]
+"tests/*.py" = ["UP035", "UP006", "B007"]
+
+"app/routers/tasks.py" = ["B008"]
+"app/routers/auth.py" = ["B008"]
+"app/main.py" = ["E402", "F401", "I001"]
+
+"app/auth.py" = ["B008"]

@@ -1,14 +1,16 @@
 # PURPOSE: define how a Task row looks in the database.
 
-from sqlalchemy import Column, Integer, String, DateTime, Index, ForeignKey
+from datetime import UTC, datetime
+
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
+
 from .db import Base
-from datetime import datetime, timezone
 
 
 def now_utc():
     """Return timezone-aware UTC datetime (stored in DB)."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class TaskDB(Base):
@@ -17,11 +19,12 @@ class TaskDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     status = Column(String, default="todo")  # todo | in_progress | done
-    priority = Column(Integer, default=1)     # 1..5
+    priority = Column(Integer, default=1)  # 1..5
     deadline = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=now_utc)
     updated_at = Column(DateTime, default=now_utc)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # task owner
+
 
 class UserDB(Base):
     __tablename__ = "users"
@@ -31,6 +34,7 @@ class UserDB(Base):
     created_at = Column(DateTime, default=now_utc)
     # relationship to tasks
     tasks = relationship("TaskDB", backref="owner")
+
 
 # Helpful indexes for filtering/sorting
 Index("ix_tasks_status", TaskDB.status)

@@ -5,9 +5,10 @@
 # - Added minimal schemas for bulk operations.
 # - Kept existing Task/User/Token schemas intact otherwise.
 
-from typing import Optional, Literal, List
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 Status = Literal["todo", "in_progress", "done"]
 
@@ -15,9 +16,9 @@ Status = Literal["todo", "in_progress", "done"]
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=120)
     priority: int = Field(default=1, ge=1, le=5)
-    deadline: Optional[datetime] = None
+    deadline: datetime | None = None
     model_config = ConfigDict(
-        extra='ignore',
+        extra="ignore",
         json_schema_extra={
             "examples": [
                 {"title": "Buy milk", "priority": 2},
@@ -28,12 +29,12 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    title: Optional[str] = Field(default=None, min_length=1, max_length=120)
-    status: Optional[Status] = None
-    priority: Optional[int] = Field(default=None, ge=1, le=5)
-    deadline: Optional[datetime] = None
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    status: Status | None = None
+    priority: int | None = Field(default=None, ge=1, le=5)
+    deadline: datetime | None = None
     model_config = ConfigDict(
-        extra='ignore',
+        extra="ignore",
         json_schema_extra={
             "examples": [
                 {"status": "in_progress"},
@@ -48,9 +49,9 @@ class TaskPut(BaseModel):
     title: str = Field(min_length=1, max_length=120)
     status: Status
     priority: int = Field(ge=1, le=5)
-    deadline: Optional[datetime] = None
+    deadline: datetime | None = None
     model_config = ConfigDict(
-        extra='ignore',
+        extra="ignore",
         json_schema_extra={
             "examples": [
                 {"title": "Full replace", "status": "todo", "priority": 1},
@@ -64,7 +65,7 @@ class Task(BaseModel):
     title: str
     status: Status
     priority: int
-    deadline: Optional[datetime]
+    deadline: datetime | None
     created_at: datetime
     updated_at: datetime
 
@@ -73,12 +74,15 @@ class Task(BaseModel):
 
 # --- Bulk operation schemas ---
 
+
 class TaskIdList(BaseModel):
     """Helper schema for bulk operations with ids."""
-    ids: List[int] = Field(min_length=1)
+
+    ids: list[int] = Field(min_length=1)
 
 
 # --- User / Auth schemas ---
+
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -99,9 +103,5 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {"access_token": "<jwt>", "token_type": "bearer"}
-            ]
-        }
+        json_schema_extra={"examples": [{"access_token": "<jwt>", "token_type": "bearer"}]}
     )

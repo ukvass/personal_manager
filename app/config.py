@@ -5,8 +5,8 @@
 #     JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MIN
 # - .env поддерживается без устаревших конструкций.
 
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import os
 
 
 class Settings(BaseSettings):

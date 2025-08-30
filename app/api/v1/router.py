@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-# Import existing routers to expose them under /api/v1 as well
-from ...routers import tasks as tasks_router
 from ...routers import auth as auth_router
 
+# Import existing routers to expose them under /api/v1 as well
+from ...routers import tasks as tasks_router
 
 api_router = APIRouter(prefix="/api/v1")
 

@@ -3,6 +3,7 @@
 
 # Ensure project root is on sys.path so `import app` works when running pytest.
 import sys, os
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
@@ -13,9 +14,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
-from app.db import Base            # DB metadata
-from app.main import app           # FastAPI app
-from app.store_db import get_db    # original dependency to override
+from app.db import Base  # DB metadata
+from app.main import app  # FastAPI app
+from app.store_db import get_db  # original dependency to override
 
 
 @pytest.fixture()
