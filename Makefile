@@ -4,7 +4,7 @@ venv:
 	source .venv/bin/activate
 
 run:
-	uvicorn app.main:app --reload
+	bash scripts/dev_run.sh
 
 test:
 	PYTHONPATH=. pytest -q
