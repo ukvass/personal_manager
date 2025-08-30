@@ -40,6 +40,15 @@ class Settings(BaseSettings):
         "frame-ancestors 'none'"
     )
 
+    # CSRF settings (for web forms)
+    CSRF_SECRET: str = "dev-csrf-secret-change-me"
+    CSRF_COOKIE_NAME: str = "csrftoken"
+    CSRF_FORM_FIELD: str = "csrf_token"
+    CSRF_HEADER_NAME: str = "X-CSRF-Token"
+    CSRF_TOKEN_TTL_SECONDS: int = 60 * 60  # 1 hour
+    CSRF_COOKIE_SECURE: bool = False  # enable in prod
+    CSRF_COOKIE_SAMESITE: str = "lax"  # 'lax' or 'strict'
+
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
         env_file=".env",
