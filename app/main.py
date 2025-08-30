@@ -59,6 +59,9 @@ from .api.v1.router import api_router
 from .config import settings
 from .logging_utils import setup_logging
 from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from .rate_limit import limiter, _rate_limit_exceeded_handler
 
 app = FastAPI(title="Personal Manager", lifespan=lifespan)
 
@@ -84,6 +87,12 @@ app.include_router(api_router)
 
 # Unified error handlers
 register_exception_handlers(app)
+
+# Rate limiting (global middleware + handler)
+app.state.limiter = limiter
+from slowapi.errors import RateLimitExceeded as _RLE # guard duplicate import in case of re-run
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Request ID + access log middleware
 @app.middleware("http")

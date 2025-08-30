@@ -35,18 +35,22 @@ def validate_csrf_token(token: str, max_age: Optional[int] = None) -> bool:
         return False
 
 
-def extract_csrf_from_request(request: Request) -> Optional[str]:
-    """Get CSRF token from header or form body, depending on request type."""
-    # Prefer header for AJAX (htmx can send a header), fallback to form field
+async def extract_csrf_from_request(request: Request) -> Optional[str]:
+    """Get CSRF token from header or form body (supports regular forms and AJAX)."""
     header = request.headers.get(settings.CSRF_HEADER_NAME)
     if header:
         return header
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
-        # FastAPI parses form in endpoint; here we read raw for safety
-        # Caller can also pass token via request.state.csrf_token if pre-parsed
-        form_field = settings.CSRF_FORM_FIELD
-        # Avoid consuming body: expect handlers to provide token explicitly
-        return request.query_params.get(form_field)
+        # Try form body (Starlette caches parsed form)
+        try:
+            form = await request.form()
+            token = form.get(settings.CSRF_FORM_FIELD)
+            if token:
+                return token
+        except Exception:
+            pass
+        # Fallback: query param
+        return request.query_params.get(settings.CSRF_FORM_FIELD)
     return None
 
 
@@ -64,7 +68,7 @@ def set_csrf_cookie(response, token: Optional[str] = None) -> str:
     return t
 
 
-def ensure_csrf(request: Request) -> None:
+async def ensure_csrf(request: Request) -> None:
     """FastAPI dependency to enforce CSRF on state-mutating web requests.
 
     Strategy: compare a signed token provided by client (header or form) with
@@ -74,7 +78,7 @@ def ensure_csrf(request: Request) -> None:
         return None
 
     cookie_token = request.cookies.get(settings.CSRF_COOKIE_NAME, "")
-    provided = extract_csrf_from_request(request) or ""
+    provided = (await extract_csrf_from_request(request)) or ""
 
     if not (cookie_token and provided):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF token missing")
@@ -87,4 +91,3 @@ def ensure_csrf(request: Request) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF token mismatch")
 
     return None
-

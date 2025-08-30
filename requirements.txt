@@ -16,3 +16,5 @@ python-multipart
 psycopg[binary]
 prometheus-fastapi-instrumentator
 itsdangerous
+slowapi
+redis

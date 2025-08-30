@@ -54,6 +54,13 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     REQUEST_ID_HEADER: str = "X-Request-ID"
 
+    # Rate limiting
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_STORAGE_URI: str = "memory://"  # use redis://... in prod/docker
+    RATE_LIMIT_LOGIN: str = "5/minute"
+    RATE_LIMIT_REGISTER: str = "3/minute"
+    REDIS_URL: str | None = None
+
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
         env_file=".env",
