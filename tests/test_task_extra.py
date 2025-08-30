@@ -11,7 +11,7 @@ def _create_task(client, title: str, priority: int = 1, description: str | None 
     payload = {"title": title, "priority": priority}
     if description is not None:
         payload["description"] = description
-    r = client.post("/tasks/", json=payload)
+    r = client.post("/api/v1/tasks/", json=payload)
     assert r.status_code == 201
     return r.json()
 
@@ -21,7 +21,7 @@ def test_search_by_q(client):
     t2 = _create_task(client, "Buy milk", description="shopping")
     t3 = _create_task(client, "HELLO again", description="caps")
 
-    r = client.get("/tasks/?q=hello")
+    r = client.get("/api/v1/tasks/?q=hello")
     assert r.status_code == 200
     results = r.json()
     titles = [t["title"] for t in results]
@@ -35,11 +35,11 @@ def test_bulk_delete(client):
     t2 = _create_task(client, "Delete me 2")
     t3 = _create_task(client, "Keep me")
 
-    r = client.post("/tasks/bulk_delete", json={"ids": [t1["id"], t2["id"]]})
+    r = client.post("/api/v1/tasks/bulk_delete", json={"ids": [t1["id"], t2["id"]]})
     assert r.status_code == 200
     assert r.json()["deleted"] == 2
 
-    r2 = client.get("/tasks/")
+    r2 = client.get("/api/v1/tasks/")
     ids = [t["id"] for t in r2.json()]
     assert t3["id"] in ids
     assert t1["id"] not in ids
@@ -50,11 +50,11 @@ def test_bulk_complete(client):
     t1 = _create_task(client, "Finish homework")
     t2 = _create_task(client, "Write report")
 
-    r = client.post("/tasks/bulk_complete", json={"ids": [t1["id"], t2["id"]]})
+    r = client.post("/api/v1/tasks/bulk_complete", json={"ids": [t1["id"], t2["id"]]})
     assert r.status_code == 200
     assert r.json()["updated"] == 2
 
-    r2 = client.get("/tasks/")
+    r2 = client.get("/api/v1/tasks/")
     got = {t["id"]: t for t in r2.json()}
     assert got[t1["id"]]["status"] == "done"
     assert got[t2["id"]]["status"] == "done"
@@ -67,7 +67,7 @@ def test_total_count_matches_results(client):
     _create_task(client, "Count C", priority=2)
 
     # Query with priority=2 (should return exactly 2 tasks)
-    r = client.get("/tasks/?priority=2")
+    r = client.get("/api/v1/tasks/?priority=2")
     assert r.status_code == 200
     results = r.json()
     total = int(r.headers.get("X-Total-Count", "-1"))

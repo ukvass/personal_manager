@@ -9,7 +9,7 @@ def _create_task(client, title: str, priority: int = 1, description: str | None 
     payload = {"title": title, "priority": priority}
     if description is not None:
         payload["description"] = description
-    r = client.post("/tasks/", json=payload)
+    r = client.post("/api/v1/tasks/", json=payload)
     assert r.status_code == 201
     return r.json()
 
@@ -26,7 +26,7 @@ def test_create_and_get_by_id(client):
     created = _create_task(client, "First", priority=2, description="hello")
     tid = created["id"]
 
-    r = client.get(f"/tasks/{tid}")
+    r = client.get(f"/api/v1/tasks/{tid}")
     assert r.status_code == 200
     got = r.json()
     # Basic shape/fields
@@ -46,7 +46,7 @@ def test_list_with_filters_and_pagination_and_total(client):
     _create_task(client, "F", priority=3)
 
     # List with filter priority=3 and pagination limit=2
-    r = client.get("/tasks/?priority=3&limit=2&offset=0")
+    r = client.get("/api/v1/tasks/?priority=3&limit=2&offset=0")
     assert r.status_code == 200
 
     # X-Total-Count should contain TOTAL matching rows (here: 3 tasks with priority=3)
@@ -58,7 +58,7 @@ def test_list_with_filters_and_pagination_and_total(client):
     assert all(t["priority"] == 3 for t in data)
 
     # Next page (offset=2) should contain the remaining 1 task (if any)
-    r2 = client.get("/tasks/?priority=3&limit=2&offset=2")
+    r2 = client.get("/api/v1/tasks/?priority=3&limit=2&offset=2")
     assert r2.status_code == 200
     data2 = r2.json()
     # second page should have 1 remaining item
@@ -71,12 +71,12 @@ def test_strict_put_requires_all_fields(client):
     tid = created["id"]
 
     # Missing required fields (status/priority) → 422 Unprocessable Entity
-    r_bad = client.put(f"/tasks/{tid}", json={"title": "Only title"})
+    r_bad = client.put(f"/api/v1/tasks/{tid}", json={"title": "Only title"})
     assert r_bad.status_code == 422
 
     # Proper full body → 200 and fields updated
     r_ok = client.put(
-        f"/tasks/{tid}",
+        f"/api/v1/tasks/{tid}",
         json={
             "title": "Full replace OK",
             "description": "new",
@@ -96,7 +96,7 @@ def test_patch_partial_update(client):
     tid = created["id"]
 
     # Only change status
-    r = client.patch(f"/tasks/{tid}", json={"status": "done"})
+    r = client.patch(f"/api/v1/tasks/{tid}", json={"status": "done"})
     assert r.status_code == 200
     data = r.json()
     assert data["status"] == "done"
@@ -110,9 +110,9 @@ def test_delete_task(client):
     tid = created["id"]
 
     # Delete should return 204
-    r = client.delete(f"/tasks/{tid}")
+    r = client.delete(f"/api/v1/tasks/{tid}")
     assert r.status_code == 204
 
     # Further GET should be 404
-    r2 = client.get(f"/tasks/{tid}")
+    r2 = client.get(f"/api/v1/tasks/{tid}")
     assert r2.status_code == 404

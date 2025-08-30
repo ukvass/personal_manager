@@ -5,6 +5,7 @@
 
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
@@ -198,15 +199,15 @@ Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 @app.middleware("http")
 async def legacy_api_deprecation(request: Request, call_next):
-    """Mark legacy JSON endpoints (/auth, /tasks) as deprecated without breaking them.
+    """Hard redirect legacy JSON endpoints (/auth, /tasks) to /api/v1 with 308.
 
-    Adds RFC 8594 style headers so clients can migrate to /api/v1 equivalents.
-    We do NOT redirect to avoid breaking older clients and tests.
+    Preserves method and body; keeps query string intact.
     """
-    response = await call_next(request)
     path = request.url.path
     if not path.startswith("/api/v1") and (path.startswith("/auth") or path.startswith("/tasks")):
         successor = "/api/v1" + path
-        response.headers.setdefault("Deprecation", "true")
-        response.headers.setdefault("Link", f'<{successor}>; rel="successor-version"; type="application/json"')
-    return response
+        if request.url.query:
+            successor = successor + "?" + request.url.query
+        from fastapi.responses import RedirectResponse as _RR
+        return _RR(url=successor, status_code=308)
+    return await call_next(request)
