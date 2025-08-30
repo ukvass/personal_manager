@@ -1,11 +1,11 @@
 # app/routers/auth.py
 # PURPOSE: /auth/register, /auth/login, /auth/me
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..db import SessionLocal
+from ..store_db import get_db
 from ..db_models import UserDB
 from ..models import UserCreate, UserPublic, TokenResponse
 from ..auth import hash_password, verify_password, create_access_token, get_current_user
@@ -14,17 +14,9 @@ from ..rate_limit import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# dependency to get DB
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
 @limiter.limit(settings.RATE_LIMIT_REGISTER)
-def register_user(request: Request, payload: UserCreate, db: Session = Depends(get_db)):
+def register_user(request: Request, response: Response, payload: UserCreate, db: Session = Depends(get_db)):
     # Check unique email
     existing = db.query(UserDB).filter(UserDB.email == payload.email).first()
     if existing:
@@ -40,7 +32,7 @@ def register_user(request: Request, payload: UserCreate, db: Session = Depends(g
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit(settings.RATE_LIMIT_LOGIN)
-def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(request: Request, response: Response, form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # OAuth2PasswordRequestForm expects fields: username, password
     user = db.query(UserDB).filter(UserDB.email == form.username).first()
     if not user or not verify_password(form.password, user.password_hash):
