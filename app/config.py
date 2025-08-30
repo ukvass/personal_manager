@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     CSRF_TOKEN_TTL_SECONDS: int = 60 * 60  # 1 hour
     CSRF_COOKIE_SECURE: bool = False  # enable in prod
     CSRF_COOKIE_SAMESITE: str = "lax"  # 'lax' or 'strict'
+    CSRF_ENFORCE: bool = False  # turn on once templates include tokens
 
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
