@@ -103,3 +103,14 @@ input, select, button { background: var(--panel-2); color: var(--text); border: 
 .alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
 .alert-error { background: #fde8e8; border: 1px solid #f8b4b4; color: #7b1c1c; }
 .mt { margin-top: 10px }
+
+
+/* Chips + pagination */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--space-2) 0; }
+.chip { text-decoration: none; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 6px 10px; border-radius: 999px; }
+.chip-muted { color: var(--muted); }
+
+
+/* Footer with actions left and pager right */
+.card-footer { display: flex; align-items: center; justify-content: flex-start; gap: 12px; margin-top: var(--space-3); }
+.card-footer .actions { margin-top: 0; }

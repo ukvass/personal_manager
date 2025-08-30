@@ -65,14 +65,40 @@
   <section class="card card-compact">
     <h2>Tasks ({{ total }})</h2>
 
+    {% if (q and q|length) or status or priority is not none %}
+      <div class="chips">
+        {% if q and q|length %}
+          <a class="chip" href="/?q=&status={{ status|default('') }}&priority={{ priority if priority is not none else '' }}&order_by={{ order_by }}&order_dir={{ order_dir }}&limit={{ limit }}&offset=0">q: {{ q }} ×</a>
+        {% endif %}
+        {% if status %}
+          <a class="chip" href="/?q={{ q }}&status=&priority={{ priority if priority is not none else '' }}&order_by={{ order_by }}&order_dir={{ order_dir }}&limit={{ limit }}&offset=0">status: {{ status }} ×</a>
+        {% endif %}
+        {% if priority is not none %}
+          <a class="chip" href="/?q={{ q }}&status={{ status|default('') }}&priority=&order_by={{ order_by }}&order_dir={{ order_dir }}&limit={{ limit }}&offset=0">priority: {{ priority }} ×</a>
+        {% endif %}
+        <a class="chip chip-muted" href="/?order_by={{ order_by }}&order_dir={{ order_dir }}&limit={{ limit }}&offset=0">Clear all</a>
+      </div>
+    {% endif %}
+
+    
+
     <!-- table body WITHOUT outer form (to avoid nested forms) -->
     <div class="table">
       <div class="row header">
         <div></div>
-        <div>ID</div>
+        <div>
+          {% set dir = (order_dir == 'desc' and 'asc' or 'desc') if order_by == 'created_at' else 'desc' %}
+          <a href="/?q={{ q }}&status={{ status or '' }}&priority={{ priority if priority is not none else '' }}&order_by=created_at&order_dir={{ dir }}&limit={{ limit }}&offset=0">ID{% if order_by == 'created_at' %} {{ order_dir == 'asc' and '▲' or '▼' }}{% endif %}</a>
+        </div>
         <div>Title</div>
-        <div>Status</div>
-        <div>Priority</div>
+        <div>
+          {% set dir = (order_dir == 'desc' and 'asc' or 'desc') if order_by == 'status' else 'desc' %}
+          <a href="/?q={{ q }}&status={{ status or '' }}&priority={{ priority if priority is not none else '' }}&order_by=status&order_dir={{ dir }}&limit={{ limit }}&offset=0">Status{% if order_by == 'status' %} {{ order_dir == 'asc' and '▲' or '▼' }}{% endif %}</a>
+        </div>
+        <div>
+          {% set dir = (order_dir == 'desc' and 'asc' or 'desc') if order_by == 'priority' else 'desc' %}
+          <a href="/?q={{ q }}&status={{ status or '' }}&priority={{ priority if priority is not none else '' }}&order_by=priority&order_dir={{ dir }}&limit={{ limit }}&offset=0">Priority{% if order_by == 'priority' %} {{ order_dir == 'asc' and '▲' or '▼' }}{% endif %}</a>
+        </div>
         <div>Actions</div>
       </div>
 
@@ -99,20 +125,25 @@
       {% endfor %}
     </div>
 
+    
+
     <!-- separate forms for bulk actions -->
     <form id="bulk-form" method="post" action="/ui/bulk_delete">
       <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
     </form>
 
-    <div class="actions">
-      <button class="btn btn-danger" form="bulk-form" type="submit">Bulk delete</button>
-      <form method="post" action="/ui/bulk_complete">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
-        {% for t in tasks %}
-          <input type="hidden" name="ids" value="{{ t.id }}">
-        {% endfor %}
-        <button class="btn btn-success" type="submit">Mark all on page as done</button>
-      </form>
+    <div class="card-footer">
+      <div class="actions">
+        <button class="btn btn-danger" form="bulk-form" type="submit">Bulk delete</button>
+        <form method="post" action="/ui/bulk_complete">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
+          {% for t in tasks %}
+            <input type="hidden" name="ids" value="{{ t.id }}">
+          {% endfor %}
+          <button class="btn btn-success" type="submit">Mark all on page as done</button>
+        </form>
+      </div>
+      
     </div>
   </section>
 {% endblock %}
