@@ -25,7 +25,7 @@ from ..store_db import (
     update_task as db_update_task,
     get_task as db_get_task,
 )
-from ..auth import verify_password, create_access_token, get_access_token_ttl_minutes
+from ..auth import verify_password, create_access_token, get_access_token_ttl_minutes, hash_password
 from ..models import TaskCreate, TaskUpdate
 from ..api.deps import (
     OrderBy,
@@ -107,6 +107,61 @@ def login_submit(
         set_csrf_cookie(resp, csrf_token)
         return resp
 
+    token = create_access_token(email)
+    minutes = get_access_token_ttl_minutes()
+    resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
+    resp.set_cookie("access_token", token, httponly=True, max_age=60 * minutes, samesite="lax")
+    return resp
+
+
+@router.get("/register", response_class=HTMLResponse)
+def register_form(request: Request):
+    # Render registration form with CSRF token
+    ctx = {"error": None}
+    from ..security import generate_csrf_token
+
+    csrf_token = generate_csrf_token()
+    ctx["csrf_token"] = csrf_token
+    resp = templates.TemplateResponse(request, "register.html", ctx)
+    set_csrf_cookie(resp, csrf_token)
+    return resp
+
+
+@router.post("/register")
+def register_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+    _csrf=Depends(ensure_csrf),
+):
+    email = (email or "").strip()
+    password = (password or "")
+    if not email or not password:
+        from ..security import generate_csrf_token
+        csrf_token = generate_csrf_token()
+        ctx = {"error": "Email and password are required.", "csrf_token": csrf_token}
+        resp = templates.TemplateResponse(request, "register.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST)
+        set_csrf_cookie(resp, csrf_token)
+        return resp
+
+    # Check uniqueness
+    exists = db.query(UserDB).filter(UserDB.email == email).one_or_none()
+    if exists:
+        from ..security import generate_csrf_token
+        csrf_token = generate_csrf_token()
+        ctx = {"error": "Email already registered.", "csrf_token": csrf_token}
+        resp = templates.TemplateResponse(request, "register.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST)
+        set_csrf_cookie(resp, csrf_token)
+        return resp
+
+    # Create user
+    row = UserDB(email=email, password_hash=hash_password(password))
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+
+    # Issue login cookie
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
     resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)

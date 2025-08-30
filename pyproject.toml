@@ -40,7 +40,7 @@ exclude = [
   "tests/",
 ]
 
-[tool.mypy-app.*]
+[[tool.mypy.overrides]]
+module = ["app.*"]
 disallow_untyped_defs = false
 disallow_any_generics = false
-

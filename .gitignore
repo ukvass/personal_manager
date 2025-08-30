@@ -32,8 +32,11 @@ htmlcov/
 Thumbs.db
 
 # --- Project-specific ---
-# SQLite DB (local, do not commit)
+# SQLite DBs (local, do not commit)
 tasks.db
+*.db
+*.sqlite
+*.sqlite3
 
 # Local environment variables
 .env

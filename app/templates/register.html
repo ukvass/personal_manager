@@ -1,14 +1,11 @@
-<!-- >>> NEW FILE: templates/login.html
-     Purpose:
-     - Simple login form that posts to /login and sets HttpOnly JWT cookie. -->
 {% extends "base.html" %}
-{% block title %}Login · Personal Manager{% endblock %}
+{% block title %}Register · Personal Manager{% endblock %}
 {% block content %}
-  <h2>Login</h2>
+  <h2>Create account</h2>
   {% if error %}
     <div class="alert alert-error">{{ error }}</div>
   {% endif %}
-  <form method="post" action="/login" class="card">
+  <form method="post" action="/register" class="card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
     <label>Email
       <input type="email" name="email" required>
@@ -17,8 +14,9 @@
       <input type="password" name="password" required>
     </label>
     <div class="actions">
-      <button class="btn btn-primary" type="submit">Sign in</button>
-      <a class="btn" href="/register">Create account</a>
+      <button class="btn btn-primary" type="submit">Register</button>
+      <a class="btn" href="/login">I have an account</a>
     </div>
   </form>
 {% endblock %}
+
