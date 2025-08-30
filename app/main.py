@@ -3,7 +3,7 @@
 # - Call run_startup_migrations(engine) after metadata.create_all().
 # - Everything else kept as-is.
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -12,6 +12,9 @@ from importlib import resources as ilres
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import logging
+import time
+import uuid
 
 from .db import Base, engine, SessionLocal
 from . import db_models
@@ -28,6 +31,7 @@ async def lifespan(app: FastAPI):
     # --- Startup ---
     # Рантайм-миграции убраны; схему управляет Alembic (upgrade head)
     is_test = "PYTEST_CURRENT_TEST" in os.environ
+    setup_logging(settings.LOG_LEVEL)
 
     test_db: Session | None = None
     if is_test:
@@ -53,6 +57,7 @@ async def lifespan(app: FastAPI):
 from .api.errors import register_exception_handlers
 from .api.v1.router import api_router
 from .config import settings
+from .logging_utils import setup_logging
 from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="Personal Manager", lifespan=lifespan)
@@ -79,6 +84,26 @@ app.include_router(api_router)
 
 # Unified error handlers
 register_exception_handlers(app)
+
+# Request ID + access log middleware
+@app.middleware("http")
+async def request_id_and_logging(request: Request, call_next):
+    start = time.perf_counter()
+    incoming = request.headers.get(settings.REQUEST_ID_HEADER)
+    req_id = incoming or uuid.uuid4().hex
+    request.state.request_id = req_id
+    response = await call_next(request)
+    response.headers.setdefault(settings.REQUEST_ID_HEADER, req_id)
+    duration_ms = int((time.perf_counter() - start) * 1000)
+    logging.getLogger("app.request").info(
+        "method=%s path=%s status=%s duration_ms=%s request_id=%s",
+        request.method,
+        request.url.path,
+        getattr(response, "status_code", "-"),
+        duration_ms,
+        req_id,
+    )
+    return response
 
 # --- Security: CORS and security headers ---
 

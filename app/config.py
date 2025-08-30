@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     CSRF_COOKIE_SAMESITE: str = "lax"  # 'lax' or 'strict'
     CSRF_ENFORCE: bool = True  # enforce CSRF on web POST routes
 
+    # Logging / diagnostics
+    LOG_LEVEL: str = "INFO"
+    REQUEST_ID_HEADER: str = "X-Request-ID"
+
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
         env_file=".env",
