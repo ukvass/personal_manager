@@ -5,6 +5,7 @@
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 from importlib import resources as ilres
@@ -50,6 +51,7 @@ async def lifespan(app: FastAPI):
 
 from .api.errors import register_exception_handlers
 from .api.v1.router import api_router
+from .config import settings
 
 app = FastAPI(title="Personal Manager", lifespan=lifespan)
 
@@ -70,7 +72,37 @@ app.include_router(tasks.router)
 app.include_router(web_router.router)
 
 # Versioned JSON API (parallel namespace so legacy routes keep working)
+# Versioned JSON API (parallel namespace so legacy routes keep working)
 app.include_router(api_router)
 
 # Unified error handlers
 register_exception_handlers(app)
+
+# --- Security: CORS and security headers ---
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ALLOW_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    # Basic hardening headers
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=()",
+    )
+    # CSP and HSTS (HSTS only when explicitly enabled)
+    if settings.SECURITY_CSP:
+        response.headers.setdefault("Content-Security-Policy", settings.SECURITY_CSP)
+    if settings.SECURITY_ENABLE_HSTS:
+        # 6 months + preload; adjust as needed in prod
+        response.headers.setdefault("Strict-Transport-Security", "max-age=15552000; includeSubDomains; preload")
+    return response

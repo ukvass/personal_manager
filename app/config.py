@@ -20,6 +20,26 @@ class Settings(BaseSettings):
     #   postgresql+psycopg://user:pass@localhost:5432/personal_manager
     DATABASE_URL: str = "sqlite:///./tasks.db"
 
+    # CORS: allow specific origins (credentials need explicit origins, not "*")
+    CORS_ALLOW_ORIGINS: list[str] = [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        # Add your frontend dev origin(s) here as needed
+    ]
+
+    # Security headers toggles
+    SECURITY_ENABLE_HSTS: bool = False  # enable in production behind HTTPS
+    SECURITY_FRAME_ANCESTORS: str = "'none'"  # deny embedding by default
+    # CSP tailored for our stack (htmx from unpkg)
+    SECURITY_CSP: str = (
+        "default-src 'self'; "
+        "script-src 'self' https://unpkg.com; "
+        "style-src 'self'; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    )
+
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
         env_file=".env",
