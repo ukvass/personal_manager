@@ -24,10 +24,8 @@ from .models import UserPublic
 async def lifespan(app: FastAPI):
     """App startup/shutdown lifecycle."""
     # --- Startup ---
-    # Рантайм-миграции убраны; для dev оставляем create_all, для test — пропускаем
+    # Рантайм-миграции убраны; схему управляет Alembic (upgrade head)
     is_test = "PYTEST_CURRENT_TEST" in os.environ
-    if not is_test:
-        Base.metadata.create_all(bind=engine)
 
     test_db: Session | None = None
     if is_test:

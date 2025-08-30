@@ -17,3 +17,7 @@ upgrade:
 
 downgrade:
 	alembic downgrade -1
+
+# Convenience alias to apply latest migrations
+db-up:
+	alembic upgrade head
