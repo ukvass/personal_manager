@@ -63,7 +63,21 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from .rate_limit import limiter, _rate_limit_exceeded_handler
 
-app = FastAPI(title="Personal Manager", lifespan=lifespan)
+tags_metadata = [
+    {"name": "auth", "description": "Authentication: register, login, me."},
+    {"name": "tasks", "description": "Task management: CRUD, filters, bulk operations."},
+]
+
+app = FastAPI(
+    title="Personal Manager API",
+    version="1.0.0",
+    description=(
+        "Versioned JSON API exposed under /api/v1. "
+        "Use OAuth2 password flow to obtain a Bearer token and access protected endpoints."
+    ),
+    openapi_tags=tags_metadata,
+    lifespan=lifespan,
+)
 
 
 @app.get("/health")
@@ -77,8 +91,9 @@ static_dir = ilres.files("app").joinpath("static")
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Mount routers
-app.include_router(auth_router.router)
-app.include_router(tasks.router)
+# Hide legacy JSON endpoints from the schema to make /api/v1 canonical
+app.include_router(auth_router.router, include_in_schema=False)
+app.include_router(tasks.router, include_in_schema=False)
 app.include_router(web_router.router)
 
 # Versioned JSON API (parallel namespace so legacy routes keep working)

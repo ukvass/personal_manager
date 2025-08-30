@@ -16,7 +16,15 @@ class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=120)
     priority: int = Field(default=1, ge=1, le=5)
     deadline: Optional[datetime] = None
-    model_config = ConfigDict(extra='ignore')
+    model_config = ConfigDict(
+        extra='ignore',
+        json_schema_extra={
+            "examples": [
+                {"title": "Buy milk", "priority": 2},
+                {"title": "Plan trip", "priority": 3, "deadline": "2025-12-31T18:00:00Z"},
+            ]
+        },
+    )
 
 
 class TaskUpdate(BaseModel):
@@ -24,7 +32,16 @@ class TaskUpdate(BaseModel):
     status: Optional[Status] = None
     priority: Optional[int] = Field(default=None, ge=1, le=5)
     deadline: Optional[datetime] = None
-    model_config = ConfigDict(extra='ignore')
+    model_config = ConfigDict(
+        extra='ignore',
+        json_schema_extra={
+            "examples": [
+                {"status": "in_progress"},
+                {"priority": 5},
+                {"title": "New title"},
+            ]
+        },
+    )
 
 
 class TaskPut(BaseModel):
@@ -32,7 +49,14 @@ class TaskPut(BaseModel):
     status: Status
     priority: int = Field(ge=1, le=5)
     deadline: Optional[datetime] = None
-    model_config = ConfigDict(extra='ignore')
+    model_config = ConfigDict(
+        extra='ignore',
+        json_schema_extra={
+            "examples": [
+                {"title": "Full replace", "status": "todo", "priority": 1},
+            ]
+        },
+    )
 
 
 class Task(BaseModel):
@@ -74,3 +98,10 @@ class TokenResponse(BaseModel):
     # Simple JWT response
     access_token: str
     token_type: Literal["bearer"] = "bearer"
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"access_token": "<jwt>", "token_type": "bearer"}
+            ]
+        }
+    )
