@@ -1,6 +1,3 @@
-# >>> PATCH: requirements.txt
-# What changed:
-# - Added jinja2 (templates) and python-multipart (HTML forms support).
 fastapi
 uvicorn[standard]
 pydantic

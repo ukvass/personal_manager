@@ -12,6 +12,18 @@ test:
 test-cov:
 	PYTHONPATH=. pytest -q --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
 
+deps-compile:
+	python -m pip install --upgrade pip pip-tools
+	pip-compile --resolver=backtracking --upgrade --output-file=requirements.txt requirements.in
+
+deps-sync:
+	python -m pip install --upgrade pip pip-tools
+	pip-sync requirements.txt
+
+audit:
+	bandit -q -r app -x tests,migrations
+	pip-audit -r requirements.txt --progress-spinner=off
+
 migrate:
 	alembic revision --autogenerate -m "$(m)"
 

@@ -24,3 +24,16 @@ repos:
         additional_dependencies: []
         args: ["--config-file=pyproject.toml"]
 
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        name: bandit (security)
+        args: ["-q", "-r", "app", "-x", "tests,migrations"]
+
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.7.3
+    hooks:
+      - id: pip-audit
+        name: pip-audit (vulnerabilities)
+        args: ["-r", "requirements.txt"]

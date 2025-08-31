@@ -1,5 +1,9 @@
 # Personal Manager
 
+<!-- Replace OWNER and REPO below with your GitHub org/user and repo names -->
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/OWNER/REPO/branch/main/graph/badge.svg)](https://codecov.io/gh/OWNER/REPO)
+
 A small, production‑like FastAPI app for task management with a clean JSON API, web UI, auth, CSRF, rate limiting, observability, and Docker setup.
 
 ## Features
@@ -113,6 +117,14 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
 ## Badges & Coverage
 - CI runs tests with coverage and uploads `coverage.xml` as an artifact.
 - To view locally: `pytest --cov=app --cov-report=term-missing -q`.
+- Codecov upload is enabled in CI (guarded by `CODECOV_TOKEN`). For private repos, add the token in GitHub → Settings → Secrets → Actions.
+
+## Security & Dependencies
+- Audit: `make audit` runs Bandit (code) + pip-audit (deps).
+- Pre-commit includes Bandit and pip-audit hooks.
+- Dependency pinning via pip-tools:
+  - Edit `requirements.in`, then `make deps-compile` to regenerate pinned `requirements.txt`.
+  - Sync your env: `make deps-sync`.
 - Pre-commit: `make precommit-install` then commit as usual; or `make precommit-run`
 
 ## Notes
