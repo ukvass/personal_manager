@@ -1,6 +1,6 @@
 # Personal Manager
 
-A small, production‑like FastAPI app for task management with a clean JSON API, web UI, auth, CSRF, rate limiting, observability, and Docker setup. Built to be a solid junior portfolio project with a touch of mid‑level practices.
+A small, production‑like FastAPI app for task management with a clean JSON API, web UI, auth, CSRF, rate limiting, observability, and Docker setup.
 
 ## Features
 - FastAPI + SQLAlchemy + Alembic migrations
