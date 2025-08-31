@@ -108,7 +108,6 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
 - Inline edit via HTMX partials
 - Screenshots:
   - ![Login](app/static/screenshots/login.png)
-  - ![Tasks](app/static/screenshots/tasks.png)
   - ![Inline Edit](app/static/screenshots/inline-edit.png)
 
 ## Security & Observability
@@ -159,10 +158,5 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
 - Health & observability:
   - Liveness `/live`, readiness `/ready` (DB ping), metrics `/metrics`.
 
-## Screenshots & Snapshots
-- Placeholder SVGs live in `app/static/screenshots` and are used in README.
-- To generate real screenshots automatically (login, tasks, inline edit):
-  - Install deps and browsers: `pip install -r requirements.txt && playwright install chromium`
-  - Start the app: `make run`
-  - Run: `make screenshots` (saves PNGs into `app/static/screenshots/`)
-  - Linux: if browser deps missing, run: `sudo playwright install-deps chromium`
+## Screenshots
+- Static screenshots (PNG) live in `app/static/screenshots` and are referenced above.

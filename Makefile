@@ -27,20 +27,6 @@ audit:
 seed:
 	PYTHONPATH=. python scripts/seed.py
 
-screenshots:
-	# Ensure playwright is installed and browsers are available:
-	#   pip install -r requirements.txt && make playwright-install
-	PYTHONPATH=. python scripts/screenshots.py
-
-playwright-install:
-	# Install Playwright browsers (Chromium)
-	python -m playwright install chromium
-
-playwright-install-deps:
-	# Linux-only: install system deps for headless Chromium (requires sudo)
-	# Run: sudo playwright install-deps chromium
-	@echo "Run with sudo (outside make): 'sudo playwright install-deps chromium'"
-
 migrate:
 	alembic revision --autogenerate -m "$(m)"
 
