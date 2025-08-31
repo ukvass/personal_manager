@@ -6,7 +6,7 @@ A small, production‑like FastAPI app for task management with a clean JSON API
 - FastAPI + SQLAlchemy + Alembic migrations
 - Auth (register/login), bcrypt hashing, JWT (cookie for web, Bearer for API)
 - Tasks CRUD, filters, search, sorting, pagination, bulk actions
-- Versioned API under `/api/v1` (legacy `/auth` and `/tasks` redirect with 308)
+- Versioned API under `/api/v1` only
 - Web UI with HTMX inline edits, CSRF protection
 - Security headers + CORS
 - Rate limiting on `/auth/*` (slowapi; Redis in Docker, in‑memory locally)
@@ -108,10 +108,14 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
 - Format: `make format`
 - Types: `make type-check`
 - Tests: `make test`
+- Coverage: `make test-cov` (generates `coverage.xml`, fails CI under 80%)
+
+## Badges & Coverage
+- CI runs tests with coverage and uploads `coverage.xml` as an artifact.
+- To view locally: `pytest --cov=app --cov-report=term-missing -q`.
 - Pre-commit: `make precommit-install` then commit as usual; or `make precommit-run`
 
 ## Notes
-- JSON API is only under `/api/v1` — legacy `/auth` and `/tasks` hard‑redirect (308) to v1.
+- JSON API is only under `/api/v1`.
 - Swagger CSP relaxed only for `/docs` and `/redoc` to allow CDN assets.
 - Local DB files are `.gitignore`d (`*.db`, `*.sqlite*`).
-

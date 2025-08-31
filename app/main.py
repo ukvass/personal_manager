@@ -24,8 +24,6 @@ from slowapi.middleware import SlowAPIMiddleware
 from .auth import get_current_user
 from .db import engine
 from .models import UserPublic
-from .routers import auth as auth_router
-from .routers import tasks
 from .routers import web as web_router
 
 
@@ -92,9 +90,6 @@ static_dir = ilres.files("app").joinpath("static")
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Mount routers
-# Hide legacy JSON endpoints from the schema to make /api/v1 canonical
-app.include_router(auth_router.router, include_in_schema=False)
-app.include_router(tasks.router, include_in_schema=False)
 app.include_router(web_router.router)
 
 # Versioned JSON API (parallel namespace so legacy routes keep working)
@@ -202,21 +197,4 @@ def ready():
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 
-# --- Legacy route deprecation helper ----------------------------------------
-
-
-@app.middleware("http")
-async def legacy_api_deprecation(request: Request, call_next):
-    """Hard redirect legacy JSON endpoints (/auth, /tasks) to /api/v1 with 308.
-
-    Preserves method and body; keeps query string intact.
-    """
-    path = request.url.path
-    if not path.startswith("/api/v1") and (path.startswith("/auth") or path.startswith("/tasks")):
-        successor = "/api/v1" + path
-        if request.url.query:
-            successor = successor + "?" + request.url.query
-        from fastapi.responses import RedirectResponse as _RR
-
-        return _RR(url=successor, status_code=308)
-    return await call_next(request)
+# (Removed legacy redirect middleware and non-versioned API routes)

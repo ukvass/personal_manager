@@ -6,6 +6,7 @@ uvicorn[standard]
 pydantic
 sqlalchemy
 pytest
+pytest-cov
 alembic
 python-jose[cryptography]
 email-validator

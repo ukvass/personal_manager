@@ -9,6 +9,9 @@ run:
 test:
 	PYTHONPATH=. pytest -q
 
+test-cov:
+	PYTHONPATH=. pytest -q --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+
 migrate:
 	alembic revision --autogenerate -m "$(m)"
 

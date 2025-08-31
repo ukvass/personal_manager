@@ -32,5 +32,10 @@ jobs:
       - name: Run tests (pytest)
         env:
           PYTHONPATH: .
-        run: pytest -q
+        run: pytest -q --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
 
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
