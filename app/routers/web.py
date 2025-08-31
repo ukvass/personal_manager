@@ -116,7 +116,9 @@ def login_submit(
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
     redirect_resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
-    redirect_resp.set_cookie("access_token", token, httponly=True, max_age=60 * minutes, samesite="lax")
+    redirect_resp.set_cookie(
+        "access_token", token, httponly=True, max_age=60 * minutes, samesite="lax"
+    )
     return redirect_resp
 
 
@@ -177,7 +179,9 @@ def register_submit(
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
     redirect_resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
-    redirect_resp.set_cookie("access_token", token, httponly=True, max_age=60 * minutes, samesite="lax")
+    redirect_resp.set_cookie(
+        "access_token", token, httponly=True, max_age=60 * minutes, samesite="lax"
+    )
     return redirect_resp
 
 
