@@ -68,7 +68,9 @@ filelock==3.19.1
     #   cachecontrol
     #   virtualenv
 greenlet==3.2.4
-    # via sqlalchemy
+    # via
+    #   playwright
+    #   sqlalchemy
 h11==0.16.0
     # via
     #   httpcore
@@ -144,6 +146,8 @@ platformdirs==4.4.0
     #   black
     #   pip-audit
     #   virtualenv
+playwright==1.55.0
+    # via -r requirements.in
 pluggy==1.6.0
     # via
     #   pytest
@@ -175,6 +179,8 @@ pydantic-core==2.33.2
     # via pydantic
 pydantic-settings==2.10.1
     # via -r requirements.in
+pyee==13.0.0
+    # via playwright
 pygments==2.19.2
     # via
     #   pytest
@@ -248,6 +254,7 @@ typing-extensions==4.15.0
     #   psycopg
     #   pydantic
     #   pydantic-core
+    #   pyee
     #   sqlalchemy
     #   starlette
     #   typing-inspection

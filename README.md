@@ -106,6 +106,10 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
 - Login: `/login`, Register: `/register`, Tasks: `/`
 - CSRF protected forms (hidden token + double submit cookie)
 - Inline edit via HTMX partials
+- Screenshots:
+  - ![Login](app/static/screenshots/login.png)
+  - ![Tasks](app/static/screenshots/tasks.png)
+  - ![Inline Edit](app/static/screenshots/inline-edit.png)
 
 ## Security & Observability
 - CORS allowlist (dev: localhost)
@@ -138,3 +142,27 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
 - JSON API is only under `/api/v1`.
 - Swagger CSP relaxed only for `/docs` and `/redoc` to allow CDN assets.
 - Local DB files are `.gitignore`d (`*.db`, `*.sqlite*`).
+
+## Production Notes
+- Reverse proxy (examples):
+  - Nginx (HTTP→app on :8000)
+    - Set headers: `X-Forwarded-Proto`, `X-Forwarded-For`, `X-Forwarded-Host`.
+    - Force HTTPS in prod; enable HSTS via `SECURITY_ENABLE_HSTS=true`.
+  - Caddy (automatic HTTPS): simple reverse_proxy to `localhost:8000`.
+- Cookies & Security:
+  - Use strong `JWT_SECRET`, `CSRF_SECRET` and set cookies `secure=true` behind HTTPS.
+  - CSP: adjust `SECURITY_CSP` if you add external scripts/styles; keep tight by default.
+  - CORS: restrict `CORS_ALLOW_ORIGINS` to your domains.
+- Environment checklist (12‑factor):
+  - `DATABASE_URL` (Postgres in prod), `JWT_*`, `CSRF_*`, `CORS_*`, `SECURITY_*`.
+  - `RATE_LIMIT_*`, `REDIS_URL` (for rate limiting at scale).
+- Health & observability:
+  - Liveness `/live`, readiness `/ready` (DB ping), metrics `/metrics`.
+
+## Screenshots & Snapshots
+- Placeholder SVGs live in `app/static/screenshots` and are used in README.
+- To generate real screenshots automatically (login, tasks, inline edit):
+  - Install deps and browsers: `pip install -r requirements.txt && playwright install chromium`
+  - Start the app: `make run`
+  - Run: `make screenshots` (saves PNGs into `app/static/screenshots/`)
+  - Linux: if browser deps missing, run: `sudo playwright install-deps chromium`

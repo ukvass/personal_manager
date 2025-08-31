@@ -24,3 +24,4 @@ pre-commit
 bandit
 pip-audit
 pip-tools
+playwright
