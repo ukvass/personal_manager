@@ -2,17 +2,13 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from fastapi import HTTPException
+from jose import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from jose import jwt
 
 from app.api import deps as api_deps
-from app.auth import (
-    create_access_token,
-    get_current_user,
-    hash_password,
-    verify_password,
-)
+from app.auth import create_access_token, get_current_user, hash_password, verify_password
 from app.config import settings
 from app.db import Base
 from app.db_models import UserDB
@@ -24,25 +20,25 @@ def test_api_deps_parsers():
     assert api_deps.parse_status(None) is None
     assert api_deps.parse_status("") is None
     assert api_deps.parse_status("todo") == "todo"
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         api_deps.parse_status("nope")
 
     # priority
     assert api_deps.parse_priority(None) is None
     assert api_deps.parse_priority("7") == 7
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         api_deps.parse_priority("x")
 
     # order_by
     assert api_deps.parse_order_by(None) == "created_at"
     assert api_deps.parse_order_by("status") == "status"
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         api_deps.parse_order_by("foo")
 
     # order_dir (with dependency order_by provided explicitly)
     assert api_deps.parse_order_dir(None, order_by="priority") == "desc"
     assert api_deps.parse_order_dir("asc", order_by="priority") == "asc"
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         api_deps.parse_order_dir("zzz", order_by="created_at")
 
 
@@ -145,13 +141,13 @@ def test_get_current_user_invalid_and_missing_sub():
     db = _mk_temp_session()
 
     # Completely invalid token
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         get_current_user(token="not-a-token", db=db)
 
     # Validly signed token but without sub
     exp = datetime.now(UTC) + timedelta(minutes=5)
     raw = jwt.encode({"exp": exp}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         get_current_user(token=raw, db=db)
 
 
@@ -195,5 +191,5 @@ def test_get_current_user_subject_not_found():
     # Token with valid signature and sub, but user does not exist in DB
     db = _mk_temp_session()
     token = create_access_token("ghost@example.com")
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         get_current_user(token=token, db=db)
