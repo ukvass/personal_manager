@@ -14,7 +14,7 @@ test-cov:
 
 deps-compile:
 	python -m pip install --upgrade pip pip-tools
-	pip-compile --resolver=backtracking --upgrade --output-file=requirements.txt requirements.in
+	pip-compile --resolver=backtracking --upgrade --strip-extras --output-file=requirements.txt requirements.in
 
 deps-sync:
 	python -m pip install --upgrade pip pip-tools

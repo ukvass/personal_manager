@@ -1,8 +1,8 @@
 # Personal Manager
 
 <!-- Replace OWNER and REPO below with your GitHub org/user and repo names -->
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/OWNER/REPO/branch/main/graph/badge.svg)](https://codecov.io/gh/OWNER/REPO)
+[![CI](https://github.com/ukvass/personal_manager/actions/workflows/ci.yml/badge.svg)](https://github.com/ukvass/personal_manager/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ukvass/personal_manager/branch/main/graph/badge.svg)](https://codecov.io/gh/ukvass/personal_manager)
 
 A small, production‑like FastAPI app for task management with a clean JSON API, web UI, auth, CSRF, rate limiting, observability, and Docker setup.
 
