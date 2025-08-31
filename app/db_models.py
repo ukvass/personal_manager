@@ -16,14 +16,14 @@ def now_utc():
 class TaskDB(Base):
     __tablename__ = "tasks"
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    status = Column(String, default="todo")  # todo | in_progress | done
-    priority = Column(Integer, default=1)  # 1..5
-    deadline = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=now_utc)
-    updated_at = Column(DateTime, default=now_utc)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # task owner
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, default="todo")  # todo | in_progress | done
+    priority: Mapped[int] = mapped_column(Integer, default=1)  # 1..5
+    deadline: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
+    owner_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
 
 
 class UserDB(Base):

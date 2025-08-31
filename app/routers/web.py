@@ -4,7 +4,7 @@
 # - index() использует _build_context() и гарантированно прокидывает email.
 # - Остальная логика без изменений.
 
-from typing import Any
+from typing import Any, cast
 from fastapi import APIRouter, Request, Depends, Form, status as http_status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -160,7 +160,7 @@ def register_submit(
         from ..security import generate_csrf_token
 
         csrf_token = generate_csrf_token()
-        ctx: dict[str, Any] = {"error": "Email already registered.", "csrf_token": csrf_token}
+        ctx = {"error": "Email already registered.", "csrf_token": csrf_token}
         resp = templates.TemplateResponse(
             request, "register.html", ctx, status_code=http_status.HTTP_400_BAD_REQUEST
         )
@@ -317,7 +317,8 @@ def change_status_web(
     if status_new not in {"todo", "in_progress", "done"}:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
 
-    data = TaskUpdate(status=status_new)
+    status_typed = cast(Status, status_new)
+    data = TaskUpdate(status=status_typed)
     updated = db_update_task(db, task_id, data, owner_id=user.id)
     if not updated:
         return RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)

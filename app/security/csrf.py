@@ -45,13 +45,11 @@ async def extract_csrf_from_request(request: Request) -> str | None:
             token = form.get(settings.CSRF_FORM_FIELD)
             if isinstance(token, str):
                 return token
-            token = form.get(settings.CSRF_FORM_FIELD)
-            if token:
-                return token
         except Exception:
             pass
         # Fallback: query param
-        return request.query_params.get(settings.CSRF_FORM_FIELD)
+        qp = request.query_params.get(settings.CSRF_FORM_FIELD)
+        return qp if isinstance(qp, str) else None
     return None
 
 
