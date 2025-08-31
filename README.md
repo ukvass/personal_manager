@@ -107,6 +107,7 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
 - CSRF protected forms (hidden token + double submit cookie)
 - Inline edit via HTMX partials
 - Screenshots:
+  - ![Demo](app/static/screenshots/demo.gif)
   - ![Login](app/static/screenshots/login.png)
   - ![Inline Edit](app/static/screenshots/inline-edit.png)
 
