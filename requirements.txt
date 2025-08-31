@@ -13,6 +13,7 @@ pydantic-settings
 bcrypt
 jinja2
 python-multipart
+httpx
 psycopg[binary]
 prometheus-fastapi-instrumentator
 itsdangerous
