@@ -36,6 +36,9 @@ Open:
 - Web UI: `http://localhost:8000/`
 - API docs (Swagger): `http://localhost:8000/docs`
 
+Seed demo data (optional):
+- `make seed` (env: `SEED_EMAIL`, `SEED_PASSWORD` to override)
+
 Tip: tests use an isolated temp SQLite DB and don’t require Postgres.
 
 ## Quickstart (Docker + Postgres)
@@ -94,6 +97,10 @@ curl -s -X POST http://localhost:8000/api/v1/tasks \
   -H 'content-type: application/json' \
   -d '{"title":"Buy milk","priority":2}'
 ```
+
+## Postman
+- Import `postman/PersonalManager.postman_collection.json`
+- Set `baseUrl` (defaults to `http://localhost:8000`) and paste `token` after login.
 
 ## Web UI
 - Login: `/login`, Register: `/register`, Tasks: `/`

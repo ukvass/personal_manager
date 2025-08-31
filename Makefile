@@ -24,6 +24,9 @@ audit:
 	bandit -q -r app -x tests,migrations
 	pip-audit -r requirements.txt --progress-spinner=off
 
+seed:
+	PYTHONPATH=. python scripts/seed.py
+
 migrate:
 	alembic revision --autogenerate -m "$(m)"
 

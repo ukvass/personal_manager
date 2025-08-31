@@ -1,0 +1,83 @@
+{
+  "info": {
+    "name": "Personal Manager API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "d6f8e4b2-77d6-4ef7-9f1a-collection"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"pm@example.com\",\n  \"password\": \"secret\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "username", "value": "pm@example.com" },
+            { "key": "password", "value": "secret" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] }
+      }
+    },
+    {
+      "name": "Create task",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/v1/tasks/", "host": ["{{baseUrl}}"], "path": ["api","v1","tasks",""] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Buy milk\",\n  \"priority\": 2\n}"
+        }
+      }
+    },
+    {
+      "name": "List tasks",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/v1/tasks/?priority=3&limit=10", "host": ["{{baseUrl}}"], "path": ["api","v1","tasks",""], "query": [
+          {"key": "priority", "value": "3"},
+          {"key": "limit", "value": "10"}
+        ] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" }
+  ]
+}
+
