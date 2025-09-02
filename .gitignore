@@ -26,6 +26,7 @@ htmlcov/
 # --- IDE configs ---
 .vscode/
 .idea/
+*.code-workspace
 
 # --- OS junk ---
 .DS_Store
