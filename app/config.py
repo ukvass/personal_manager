@@ -1,11 +1,3 @@
-# >>> PATCH: app/config.py
-# What changed:
-# - Pydantic v2 style without deprecated Field(..., env=...) and class Config.
-# - Use SettingsConfigDict via pydantic-settings; env vars now map by field name:
-#     JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MIN
-# - .env поддерживается без устаревших конструкций.
-
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,6 +42,10 @@ class Settings(BaseSettings):
     CSRF_COOKIE_SECURE: bool = False  # enable in prod
     CSRF_COOKIE_SAMESITE: str = "lax"  # 'lax' or 'strict'
     CSRF_ENFORCE: bool = True  # enforce CSRF on web POST routes
+    ACCESS_COOKIE_NAME: str = "access_token"
+    ACCESS_COOKIE_SECURE: bool = False  # enable in prod
+    ACCESS_COOKIE_SAMESITE: str = "lax"
+    ACCESS_COOKIE_DOMAIN: str | None = None
 
     # Logging / diagnostics
     LOG_LEVEL: str = "INFO"

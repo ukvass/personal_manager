@@ -1,8 +1,9 @@
+from importlib import resources as ilres
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
-from importlib import resources as ilres
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 

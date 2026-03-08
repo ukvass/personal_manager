@@ -1,41 +1,36 @@
-# >>> PATCH: app/routers/web.py
-# Что изменил:
-# - Добавил _build_context(): возвращает {'request', 'user', 'user_email'}.
-# - index() использует _build_context() и гарантированно прокидывает email.
-# - Остальная логика без изменений.
-
 from typing import Any, cast
-from fastapi import APIRouter, Request, Depends, Form, status as http_status
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-from jose import jwt, JWTError
 from importlib import resources as ilres
 
-from ..config import settings
-from ..db_models import UserDB
-from ..store_db import (
-    get_db,
-    list_tasks as db_list_tasks,
-    create_task as db_create_task,
-    delete_task as db_delete_task,
-    count_tasks as db_count_tasks,
-    bulk_delete_tasks as db_bulk_delete,
-    bulk_complete_tasks as db_bulk_complete,
-    update_task as db_update_task,
-    get_task as db_get_task,
-)
-from ..auth import verify_password, create_access_token, get_access_token_ttl_minutes, hash_password
-from ..models import TaskCreate, TaskUpdate, Status
+from fastapi import APIRouter, Depends, Form, Request, status as http_status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from jose import jwt, JWTError
+from sqlalchemy.orm import Session
+
 from ..api.deps import (
     OrderBy,
     OrderDir,
-    parse_status,
-    parse_priority,
     parse_order_by,
     parse_order_dir,
+    parse_priority,
+    parse_status,
 )
-from ..security import set_csrf_cookie, ensure_csrf
+from ..auth import create_access_token, get_access_token_ttl_minutes, hash_password, verify_password
+from ..config import settings
+from ..db_models import UserDB
+from ..models import TaskCreate, TaskUpdate, Status
+from ..security import ensure_csrf, set_csrf_cookie
+from ..store_db import (
+    bulk_complete_tasks as db_bulk_complete,
+    bulk_delete_tasks as db_bulk_delete,
+    count_tasks as db_count_tasks,
+    create_task as db_create_task,
+    delete_task as db_delete_task,
+    get_db,
+    get_task as db_get_task,
+    list_tasks as db_list_tasks,
+    update_task as db_update_task,
+)
 
 templates_dir = ilres.files("app").joinpath("templates")
 templates = Jinja2Templates(directory=str(templates_dir))
@@ -45,7 +40,7 @@ router = APIRouter(tags=["web"])
 
 
 def _get_user_from_cookie(request: Request, db: Session) -> UserDB | None:
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
     if not token:
         return None
     try:
@@ -65,6 +60,18 @@ def _build_context(request: Request, db: Session) -> dict:
         "user": user,
         "user_email": user.email if user else None,
     }
+
+
+def _set_access_cookie(response: RedirectResponse, token: str, max_age_seconds: int) -> None:
+    response.set_cookie(
+        settings.ACCESS_COOKIE_NAME,
+        token,
+        httponly=True,
+        secure=settings.ACCESS_COOKIE_SECURE,
+        samesite=settings.ACCESS_COOKIE_SAMESITE,
+        domain=settings.ACCESS_COOKIE_DOMAIN,
+        max_age=max_age_seconds,
+    )
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -116,9 +123,7 @@ def login_submit(
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
     redirect_resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
-    redirect_resp.set_cookie(
-        "access_token", token, httponly=True, max_age=60 * minutes, samesite="lax"
-    )
+    _set_access_cookie(redirect_resp, token, max_age_seconds=60 * minutes)
     return redirect_resp
 
 
@@ -179,16 +184,14 @@ def register_submit(
     token = create_access_token(email)
     minutes = get_access_token_ttl_minutes()
     redirect_resp = RedirectResponse(url="/", status_code=http_status.HTTP_303_SEE_OTHER)
-    redirect_resp.set_cookie(
-        "access_token", token, httponly=True, max_age=60 * minutes, samesite="lax"
-    )
+    _set_access_cookie(redirect_resp, token, max_age_seconds=60 * minutes)
     return redirect_resp
 
 
 @router.post("/logout")
 def logout(_csrf=Depends(ensure_csrf)):
     resp = RedirectResponse(url="/login", status_code=http_status.HTTP_303_SEE_OTHER)
-    resp.delete_cookie("access_token")
+    resp.delete_cookie(settings.ACCESS_COOKIE_NAME, domain=settings.ACCESS_COOKIE_DOMAIN)
     return resp
 
 

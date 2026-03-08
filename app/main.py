@@ -1,10 +1,4 @@
-# >>> PATCH: app/main.py
-# Changes:
-# - Call run_startup_migrations(engine) after metadata.create_all().
-# - Everything else kept as-is.
-
 import logging
-import os
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -14,46 +8,20 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-
-from .auth import get_current_user
 from .db import engine
-from .models import UserPublic
 from .routers import web as web_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """App startup/shutdown lifecycle."""
-    # --- Startup ---
-    # Рантайм-миграции убраны; схему управляет Alembic (upgrade head)
-    is_test = "PYTEST_CURRENT_TEST" in os.environ
     setup_logging(settings.LOG_LEVEL)
-
-    test_db: Session | None = None
-    if is_test:
-        # В тестах не трогаем реальную БД — просто подменяем текущего пользователя
-        def _test_current_user_override():
-            return UserPublic(id=1, email="test@example.com")
-
-        app.dependency_overrides[get_current_user] = _test_current_user_override
-        app.state._had_test_override = True
-    else:
-        app.state._had_test_override = False
-
-    try:
-        yield
-    finally:
-        # --- Shutdown ---
-        if getattr(app.state, "_had_test_override", False):
-            app.dependency_overrides.pop(get_current_user, None)
-        if test_db is not None:
-            test_db.close()
+    yield
 
 
 from .api.errors import register_exception_handlers
@@ -92,7 +60,6 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 # Mount routers
 app.include_router(web_router.router)
 
-# Versioned JSON API (parallel namespace so legacy routes keep working)
 # Versioned JSON API (parallel namespace so legacy routes keep working)
 app.include_router(api_router)
 

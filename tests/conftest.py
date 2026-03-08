@@ -2,7 +2,8 @@
 # PURPOSE: create a TestClient and override DB dependency to use a temp SQLite file.
 
 # Ensure project root is on sys.path so `import app` works when running pytest.
-import sys, os
+import os
+import sys
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -14,8 +15,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
+from app.auth import get_current_user
 from app.db import Base  # DB metadata
 from app.main import app  # FastAPI app
+from app.models import UserPublic
 from app.store_db import get_db  # original dependency to override
 
 
@@ -42,6 +45,9 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: UserPublic(
+        id=1, email="test@example.com"
+    )
 
     # 5) Yield a TestClient (context manager ensures proper startup/shutdown)
     with TestClient(app) as c:

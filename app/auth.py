@@ -1,9 +1,3 @@
-# >>> PATCH: app/auth.py
-# Changes:
-# - Added safe TTL parsing via get_access_token_ttl_minutes().
-# - create_access_token() now uses the safe TTL (fallback to 60 on bad env).
-# - Public API unchanged; rest of logic as before.
-
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -14,9 +8,9 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from .config import settings
-from .db import SessionLocal
 from .db_models import UserDB
 from .models import UserPublic
+from .store_db import get_db
 
 # OAuth2 password flow
 # Point tokenUrl to versioned endpoint for accurate OpenAPI examples
@@ -41,20 +35,8 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
             plain_password.encode("utf-8"),
             password_hash.encode("utf-8"),
         )
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         return False
-
-
-# --- DB dependency ---
-
-
-def get_db():
-    """Yield a SQLAlchemy Session; mirrors store_db.get_db usage pattern."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # --- JWT helpers ---

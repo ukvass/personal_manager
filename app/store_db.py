@@ -1,14 +1,8 @@
-# >>> PATCH: app/store_db.py
-# Changes:
-# - _apply_ordering(): added 'status' ordering using SQL CASE:
-#     todo -> 0, in_progress -> 1, done -> 2 (desc shows done first).
-# - Kept priority NULL-safe (COALESCE) and stable secondary ordering.
-
 from __future__ import annotations
 
-from typing import Optional, Sequence, List, Any
+from typing import Any, List, Optional, Sequence
 
-from sqlalchemy import func, case
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from .db_models import TaskDB, now_utc
@@ -215,12 +209,9 @@ def bulk_delete_tasks(db: Session, ids: Sequence[int], *, owner_id: Optional[int
     q = db.query(TaskDB).filter(TaskDB.id.in_(list(ids)))
     if owner_id is not None:
         q = q.filter(TaskDB.owner_id == owner_id)
-    deleted = 0
-    for row in q.all():
-        db.delete(row)
-        deleted += 1
+    deleted = q.delete(synchronize_session=False)
     db.commit()
-    return deleted
+    return int(deleted)
 
 
 def bulk_complete_tasks(db: Session, ids: Sequence[int], *, owner_id: Optional[int] = None) -> int:
@@ -230,10 +221,12 @@ def bulk_complete_tasks(db: Session, ids: Sequence[int], *, owner_id: Optional[i
     q = db.query(TaskDB).filter(TaskDB.id.in_(list(ids)))
     if owner_id is not None:
         q = q.filter(TaskDB.owner_id == owner_id)
-    updated = 0
-    for row in q.all():
-        row.status = "done"
-        db.add(row)
-        updated += 1
+    updated = q.update(
+        {
+            TaskDB.status: "done",
+            TaskDB.updated_at: now_utc(),
+        },
+        synchronize_session=False,
+    )
     db.commit()
-    return updated
+    return int(updated)
